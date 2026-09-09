@@ -1,0 +1,39 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/patients/patients",
+    "pages/scales/scales",
+    "pages/patient-form/patient-form",
+    "pages/patient-detail/patient-detail",
+    "pages/patient-picker/patient-picker",
+    "pages/reports/reports",
+    "pages/comprehensive-report/comprehensive-report",
+    "pages/scale-guide/scale-guide",
+    "pages/assessment/assessment",
+    "pages/result/result",
+    "pages/assessment-complete/assessment-complete",
+    "pages/records/records",
+    "pages/profile/profile",
+    "pages/offline-sync/offline-sync"
+  ],
+  "tabBar": {
+    "custom": true,
+    "color": "#6d7480",
+    "selectedColor": "#1769e0",
+    "list": [
+      { "pagePath": "pages/patients/patients", "text": "患者" },
+      { "pagePath": "pages/scales/scales", "text": "测评" },
+      { "pagePath": "pages/profile/profile", "text": "我的" }
+    ]
+  },
+  "window": {
+    "navigationBarTitleText": "认知筛查系统",
+    "navigationBarBackgroundColor": "#f5f8fc",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f5f8fc",
+    "backgroundTextStyle": "light"
+  },
+
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

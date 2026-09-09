@@ -1,0 +1,21 @@
+<view class="page safe-bottom">
+  <view class="topbar">
+    <view class="back-button" bindtap="back" aria-label="返回">‹</view>
+    <text class="page-title">患者管理</text>
+    <view class="add-button" bindtap="create" aria-label="新增患者">+</view>
+  </view>
+  <view class="search card"><text class="search-icon">⌕</text><input placeholder="搜索患者姓名/身份证号" value="{{keyword}}" bindinput="onKeywordInput" confirm-type="search" bindconfirm="load" /></view>
+  <view wx:if="{{loading}}" class="empty muted">正在加载...</view>
+  <view wx:elif="{{patients.length === 0}}" class="empty card muted">暂无患者，点击右上角添加</view>
+  <block wx:else>
+    <view wx:for="{{patients}}" wx:key="patientId" class="patient-card card" bindtap="openPatient" data-id="{{item.patientId}}">
+      <view class="avatar">{{item.initial}}</view>
+      <view class="patient-main">
+        <view class="patient-name">{{item.name}}</view>
+        <view class="patient-code">编号：{{item.patientCode}}</view>
+        <view class="patient-meta"><text>性别：{{item.genderLabel}}</text><text>年龄：{{item.ageLabel}}</text></view>
+      </view>
+      <view class="delete-button" catchtap="deletePatient" data-id="{{item.patientId}}">⌫</view><text class="arrow">›</text>
+    </view>
+  </block>
+</view>
