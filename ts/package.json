@@ -1,0 +1,13 @@
+{
+  "name": "ad-ouc-scoring-ts",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "6 量表认知评估评分引擎（TypeScript 1:1 移植自 scoring/）",
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22.6.0"
+  }
+}
