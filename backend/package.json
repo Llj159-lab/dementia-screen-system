@@ -8,14 +8,20 @@
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "typecheck": "tsc --noEmit",
-    "db:validate": "tsx scripts/validate-schema.ts"
+    "db:validate": "tsx scripts/validate-schema.ts",
+    "auth:hash": "tsx scripts/hash-password.ts"
   },
   "engines": {
     "node": ">=20"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/pg": "^8.23.1",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "@cloudbase/node-sdk": "^3.18.3",
+    "pg": "^8.23.0"
   }
 }

@@ -1,4 +1,5 @@
-import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
+import { CloudUserStore } from "../database/cloud-user-store.js";
 import { LocalUserStore, type StoredUser } from "../database/user-store.js";
 
 export const ROLE_CODES = ["admin", "researcher", "evaluator"] as const;
@@ -97,7 +98,7 @@ function toPublicUser(user: StoredUser): AuthUser {
 }
 
 const now = new Date().toISOString();
-const userStore = new LocalUserStore(undefined, [
+const localUserStore = new LocalUserStore(undefined, [
   {
     userId: "usr_demo_admin",
     authProvider: "seed",
@@ -138,21 +139,29 @@ const userStore = new LocalUserStore(undefined, [
     updatedAt: now,
   },
 ]);
+const userStore = process.env.DATA_DRIVER === "cloudbase" ? new CloudUserStore() : localUserStore;
+const revokedTokens = new Set<string>();
 
-const sessions = new Map<string, Session>();
+function jwtSecret(): string {
+  const value = process.env.JWT_SECRET?.trim();
+  if (!value && process.env.NODE_ENV === "production") throw new Error("JWT_SECRET is required in production");
+  return value || "local-development-only-secret";
+}
+function encode(value: unknown): string { return Buffer.from(JSON.stringify(value)).toString("base64url"); }
+function sign(input: string): string { return createHmac("sha256", jwtSecret()).update(input).digest("base64url"); }
 
 function createSession(user: StoredUser): { token: string; expiresAt: string } {
-  const token = randomBytes(32).toString("base64url");
   const expiresAt = Date.now() + TOKEN_TTL_SECONDS * 1000;
-  sessions.set(token, { token, userId: user.userId, expiresAt });
+  const body = `${encode({ alg: "HS256", typ: "JWT" })}.${encode({ sub: user.userId, roles: user.roleCodes, exp: Math.floor(expiresAt / 1000), jti: randomUUID() })}`;
+  const token = `${body}.${sign(body)}`;
   return { token, expiresAt: new Date(expiresAt).toISOString() };
 }
 
-export function loginWithPassword(
+export async function loginWithPassword(
   username: string,
   password: string,
-): { token: string; expiresAt: string; user: AuthUser } {
-  const user = userStore.findByUsername(username);
+): Promise<{ token: string; expiresAt: string; user: AuthUser }> {
+  const user = await userStore.findByUsername(username);
   if (!user || !user.passwordHash || !verifyPassword(password, user.passwordHash)) {
     throw new AuthError(401, 40101, "invalid username or password");
   }
@@ -160,7 +169,7 @@ export function loginWithPassword(
     throw new AuthError(403, 40301, "user account is not active");
   }
 
-  userStore.updateLastLogin(user.userId, new Date().toISOString());
+  await userStore.updateLastLogin(user.userId, new Date().toISOString());
   return { ...createSession(user), user: toPublicUser(user) };
 }
 
@@ -168,17 +177,19 @@ export function loginWithMiniProgram(): never {
   throw new AuthError(503, 50301, "mini-program authentication is not configured");
 }
 
-export function authenticateToken(token: string): AuthUser {
-  const session = sessions.get(token);
-  if (!session) {
+export async function authenticateToken(token: string): Promise<AuthUser> {
+  if (revokedTokens.has(token)) throw new AuthError(401, 40101, "invalid or expired token");
+  const parts = token.split(".");
+  const expectedSignature = Buffer.from(sign(`${parts[0]}.${parts[1]}`));
+  const actualSignature = Buffer.from(parts[2] ?? "");
+  if (parts.length !== 3 || actualSignature.length !== expectedSignature.length || !timingSafeEqual(actualSignature, expectedSignature))
     throw new AuthError(401, 40101, "invalid or expired token");
-  }
-  if (session.expiresAt <= Date.now()) {
-    sessions.delete(token);
+  let payload: { sub?: string; exp?: number };
+  try { payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8")); }
+  catch { throw new AuthError(401, 40101, "invalid or expired token"); }
+  if (!payload.sub || !payload.exp || payload.exp <= Math.floor(Date.now() / 1000))
     throw new AuthError(401, 40101, "invalid or expired token");
-  }
-
-  const user = userStore.findByUserId(session.userId);
+  const user = await userStore.findByUserId(payload.sub);
   if (!user || user.status !== "active") {
     throw new AuthError(401, 40101, "user account is not active");
   }
@@ -186,7 +197,7 @@ export function authenticateToken(token: string): AuthUser {
 }
 
 export function revokeToken(token: string): void {
-  sessions.delete(token);
+  revokedTokens.add(token);
 }
 
 export function getBearerToken(authorizationHeader: string | undefined): string {
@@ -207,20 +218,12 @@ export function requirePermission(user: AuthUser, permission: PermissionCode): v
   }
 }
 
-export function getAuthStatus(): {
-  mode: "local_file";
-  persistent: true;
-  userCount: number;
-  filePath: string;
-  tokenTtlSeconds: number;
-  miniProgramProvider: "not_configured";
-} {
-  const userStoreStatus = userStore.getStatus();
+export function getAuthStatus() {
+  const localStatus = process.env.DATA_DRIVER === "cloudbase" ? {} : localUserStore.getStatus();
   return {
-    mode: "local_file",
-    persistent: true,
-    userCount: userStoreStatus.userCount,
-    filePath: userStoreStatus.filePath,
+    mode: process.env.DATA_DRIVER === "cloudbase" ? "cloudbase_rdb" : "local_file",
+    ...localStatus,
+    tokenType: "JWT-HS256",
     tokenTtlSeconds: TOKEN_TTL_SECONDS,
     miniProgramProvider: "not_configured",
   };

@@ -6,6 +6,8 @@ import {
   ALLOWED_FILE_TYPES,
   FILE_RELATED_TYPES,
   FileStoreError,
+  CloudBaseFileStore,
+  type FileStore,
   LocalFileStore,
   MAX_FILE_SIZE_BYTES,
   type AllowedFileType,
@@ -27,7 +29,9 @@ const port = Number(process.env.PORT ?? 3000);
 const apiPrefix = process.env.API_PREFIX ?? "/api/v1";
 const serviceVersion = process.env.SERVICE_VERSION ?? "0.1.0";
 const startedAt = new Date();
-const fileStore = new LocalFileStore();
+const fileStore: FileStore = process.env.STORAGE_DRIVER === "cloudbase" ? new CloudBaseFileStore() : new LocalFileStore();
+const allowedOrigins = (process.env.CORS_ORIGINS ?? "http://localhost:5173,http://localhost:8080")
+  .split(",").map((value) => value.trim()).filter(Boolean);
 
 type ApiResponse = {
   code: number;
@@ -110,9 +114,9 @@ function requireBodyOption<T extends string>(
   return value as T;
 }
 
-function requireUser(request: IncomingMessage): { user: AuthUser; token: string } {
+async function requireUser(request: IncomingMessage): Promise<{ user: AuthUser; token: string }> {
   const token = getBearerToken(request.headers.authorization);
-  return { token, user: authenticateToken(token) };
+  return { token, user: await authenticateToken(token) };
 }
 
 function sendAuthError(response: ServerResponse, error: unknown, requestId: string): void {
@@ -153,7 +157,11 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
     }
   });
 
-  response.setHeader("Access-Control-Allow-Origin", "*");
+  const origin = request.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    response.setHeader("Access-Control-Allow-Origin", origin);
+    response.setHeader("Vary", "Origin");
+  }
   response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-Id");
   response.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
 
@@ -179,9 +187,9 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
           startedAt: startedAt.toISOString(),
           uptimeSeconds: Math.floor(process.uptime()),
           dependencies: {
-            database: getDatabaseStatus(),
+            database: await getDatabaseStatus(),
             objectStorage: {
-              ...fileStore.getStatus(),
+              ...(await fileStore.getStatus() as object),
             },
           },
           authentication: getAuthStatus(),
@@ -196,7 +204,7 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
       const body = await readJsonBody(request);
       const username = requireBodyString(body, "username");
       const password = requireBodyString(body, "password");
-      const result = loginWithPassword(username, password);
+      const result = await loginWithPassword(username, password);
       sendJson(response, 200, { code: 0, message: "ok", data: result }, requestId);
       return;
     }
@@ -206,20 +214,20 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
     }
 
     if (method === "GET" && url.pathname === `${apiPrefix}/auth/me`) {
-      const { user } = requireUser(request);
+      const { user } = await requireUser(request);
       sendJson(response, 200, { code: 0, message: "ok", data: { user } }, requestId);
       return;
     }
 
     if (method === "POST" && url.pathname === `${apiPrefix}/auth/logout`) {
-      const { token } = requireUser(request);
+      const { token } = await requireUser(request);
       revokeToken(token);
       sendJson(response, 200, { code: 0, message: "ok", data: null }, requestId);
       return;
     }
 
     if (method === "POST" && url.pathname === `${apiPrefix}/files`) {
-      const { user } = requireUser(request);
+      const { user } = await requireUser(request);
       requirePermission(user, "file:upload");
       const body = await readJsonBody(request, 30 * 1024 * 1024);
       const originalName = requireBodyString(body, "originalName");
@@ -227,7 +235,7 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
       const relatedType = requireBodyOption(body, "relatedType", FILE_RELATED_TYPES);
       const relatedId = requireBodyString(body, "relatedId");
       const contentBase64 = requireBodyString(body, "contentBase64");
-      const file = fileStore.create({
+      const file = await fileStore.create({
         originalName,
         mimeType: mimeType as AllowedFileType,
         contentBase64,
@@ -240,7 +248,7 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
     }
 
     if (method === "GET" && url.pathname === `${apiPrefix}/files`) {
-      const { user } = requireUser(request);
+      const { user } = await requireUser(request);
       requirePermission(user, "file:read");
       const relatedTypeValue = url.searchParams.get("relatedType") ?? undefined;
       const relatedId = url.searchParams.get("relatedId") ?? undefined;
@@ -250,7 +258,7 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
       ) {
         throw new AuthError(400, 40001, "relatedType is invalid");
       }
-      const files = fileStore.list(
+      const files = await fileStore.list(
         relatedTypeValue as FileRelatedType | undefined,
         relatedId,
       );
@@ -260,7 +268,7 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
 
     const filePathPrefix = `${apiPrefix}/files/`;
     if (method === "GET" && url.pathname.startsWith(filePathPrefix)) {
-      const { user } = requireUser(request);
+      const { user } = await requireUser(request);
       requirePermission(user, "file:read");
       const routeParts = url.pathname
         .slice(filePathPrefix.length)
@@ -268,7 +276,7 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
         .filter(Boolean)
         .map((part) => decodeURIComponent(part));
       const fileId = routeParts[0];
-      const file = fileId ? fileStore.findById(fileId) : undefined;
+      const file = fileId ? await fileStore.findById(fileId) : undefined;
       if (!file) {
         sendJson(
           response,
@@ -279,7 +287,7 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
         return;
       }
       if (routeParts[1] === "download") {
-        const content = fileStore.readContent(file);
+        const content = await fileStore.readContent(file);
         response.statusCode = 200;
         response.setHeader("Content-Type", file.mimeType);
         response.setHeader("Content-Length", content.length);
@@ -296,7 +304,7 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
     }
 
     if (method === "GET" && url.pathname === `${apiPrefix}/system/admin-check`) {
-      const { user } = requireUser(request);
+      const { user } = await requireUser(request);
       requirePermission(user, "system:admin");
       sendJson(
         response,
