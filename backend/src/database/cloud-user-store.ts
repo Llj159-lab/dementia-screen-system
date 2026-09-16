@@ -16,6 +16,22 @@ function mapUser(row: UserRow): StoredUser {
     createdAt: row.created_at, updatedAt: row.updated_at };
 }
 
+function toRow(user: StoredUser): UserRow {
+  return {
+    user_id: user.userId,
+    auth_provider: user.authProvider,
+    username: user.username,
+    password_hash: user.passwordHash,
+    open_id: user.openId,
+    display_name: user.displayName,
+    role_codes: [...user.roleCodes],
+    status: user.status,
+    last_login_at: user.lastLoginAt,
+    created_at: user.createdAt,
+    updated_at: user.updatedAt,
+  };
+}
+
 async function one(column: "username" | "user_id", value: string): Promise<StoredUser | undefined> {
   const { data, error } = await getRdbClient().from<UserRow>("users").select("*").eq(column, value).limit(1).maybeSingle();
   if (error) throw new Error(`CloudBase users query failed: ${error.message ?? "unknown error"}`);
@@ -25,6 +41,24 @@ async function one(column: "username" | "user_id", value: string): Promise<Store
 export class CloudUserStore {
   findByUsername(username: string) { return one("username", username); }
   findByUserId(userId: string) { return one("user_id", userId); }
+  async list(): Promise<StoredUser[]> {
+    const { data, error } = await getRdbClient().from<UserRow[]>("users").select("*");
+    if (error) throw new Error(`CloudBase users query failed: ${error.message ?? "unknown error"}`);
+    return (data ?? []).map(mapUser);
+  }
+  async create(user: StoredUser): Promise<StoredUser> {
+    const { error } = await getRdbClient().from("users").insert(toRow(user));
+    if (error) throw new Error(`CloudBase users insert failed: ${error.message ?? "unknown error"}`);
+    return user;
+  }
+  async update(userId: string, changes: Partial<StoredUser>): Promise<StoredUser | undefined> {
+    const current = await this.findByUserId(userId);
+    if (!current) return undefined;
+    const updated: StoredUser = { ...current, ...changes, userId, updatedAt: new Date().toISOString() };
+    const { error } = await getRdbClient().from("users").update(toRow(updated)).eq("user_id", userId);
+    if (error) throw new Error(`CloudBase users update failed: ${error.message ?? "unknown error"}`);
+    return updated;
+  }
   async updateLastLogin(userId: string, lastLoginAt: string): Promise<void> {
     const { error } = await getRdbClient().from("users").update({ last_login_at: lastLoginAt, updated_at: lastLoginAt }).eq("user_id", userId);
     if (error) throw new Error(`CloudBase users update failed: ${error.message ?? "unknown error"}`);

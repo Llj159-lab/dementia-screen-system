@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS assessment_answers (
   answer_id TEXT PRIMARY KEY,
   assessment_id TEXT NOT NULL REFERENCES assessment_records (assessment_id) ON DELETE CASCADE,
   item_code TEXT NOT NULL,
+  option_code TEXT,
   value JSONB NOT NULL DEFAULT '{}',
   answer_status TEXT NOT NULL CHECK (
     answer_status IN ('answered', 'unanswered', 'na', 'unknown', 'refused')

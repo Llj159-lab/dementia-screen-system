@@ -8,6 +8,7 @@ type RdbBuilder<T> = PromiseLike<RdbResult<T>> & {
   maybeSingle(): RdbBuilder<T>;
   insert(values: unknown): RdbBuilder<T>;
   update(values: unknown): RdbBuilder<T>;
+  delete(): RdbBuilder<T>;
 };
 export type RdbClient = { from<T = unknown>(table: string): RdbBuilder<T> };
 

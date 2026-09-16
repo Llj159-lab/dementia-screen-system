@@ -43,7 +43,7 @@ const auditFields: Record<string, FieldDefinition> = {
   },
 };
 
-export const SCHEMA_VERSION = "2026-09-02";
+export const SCHEMA_VERSION = "2026-09-16";
 
 export const CORE_COLLECTION_NAMES = [
   "users",
@@ -401,6 +401,11 @@ export const COLLECTIONS: readonly CollectionDefinition[] = [
         type: "string",
         required: true,
         description: "Stable item or sub-item code within the scale version.",
+      },
+      optionCode: {
+        type: "string",
+        nullable: true,
+        description: "Selected option code used by the scoring engine.",
       },
       value: {
         type: "object",

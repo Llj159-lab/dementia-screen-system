@@ -8,10 +8,15 @@ export type RoleCode = (typeof ROLE_CODES)[number];
 export const PERMISSION_CODES = [
   "system:admin",
   "patient:read",
+  "patient:create",
+  "patient:update",
+  "patient:delete",
   "assessment:read",
   "assessment:create",
   "assessment:update",
   "scale:read",
+  "report:export",
+  "operation_log:read",
   "file:read",
   "file:upload",
 ] as const;
@@ -21,18 +26,26 @@ const ROLE_PERMISSIONS: Record<RoleCode, readonly PermissionCode[]> = {
   admin: PERMISSION_CODES,
   researcher: [
     "patient:read",
+    "patient:create",
+    "patient:update",
     "assessment:read",
     "assessment:create",
     "assessment:update",
     "scale:read",
+    "report:export",
+    "operation_log:read",
     "file:read",
     "file:upload",
   ],
   evaluator: [
     "patient:read",
+    "patient:create",
+    "patient:update",
     "assessment:read",
     "assessment:create",
     "assessment:update",
+    "scale:read",
+    "report:export",
     "file:read",
     "file:upload",
   ],
@@ -95,6 +108,12 @@ function toPublicUser(user: StoredUser): AuthUser {
     status: user.status,
     lastLoginAt: user.lastLoginAt,
   };
+}
+
+export type ManagedUser = AuthUser & { createdAt: string; updatedAt: string };
+
+function toManagedUser(user: StoredUser): ManagedUser {
+  return { ...toPublicUser(user), createdAt: user.createdAt, updatedAt: user.updatedAt };
 }
 
 const now = new Date().toISOString();
@@ -216,6 +235,63 @@ export function requirePermission(user: AuthUser, permission: PermissionCode): v
   if (!allowed) {
     throw new AuthError(403, 40301, `permission denied: ${permission}`);
   }
+}
+
+export async function listManagedUsers(): Promise<ManagedUser[]> {
+  return (await userStore.list()).map(toManagedUser);
+}
+
+export async function createManagedUser(input: {
+  username: string;
+  password: string;
+  displayName: string;
+  roleCodes: readonly RoleCode[];
+  status?: StoredUser["status"];
+}): Promise<ManagedUser> {
+  if (input.password.length < 8) {
+    throw new AuthError(400, 40001, "password must contain at least 8 characters");
+  }
+  if (await userStore.findByUsername(input.username)) {
+    throw new AuthError(409, 40901, "username already exists");
+  }
+  const timestamp = new Date().toISOString();
+  const user: StoredUser = {
+    userId: randomUUID(),
+    authProvider: "web",
+    username: input.username,
+    passwordHash: hashPassword(input.password),
+    openId: null,
+    displayName: input.displayName,
+    roleCodes: [...input.roleCodes],
+    status: input.status ?? "active",
+    lastLoginAt: null,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+  await userStore.create(user);
+  return toManagedUser(user);
+}
+
+export async function updateManagedUser(
+  userId: string,
+  changes: { displayName?: string; roleCodes?: readonly RoleCode[]; status?: StoredUser["status"] },
+): Promise<ManagedUser> {
+  const updated = await userStore.update(userId, changes);
+  if (!updated) {
+    throw new AuthError(404, 40401, "user not found");
+  }
+  return toManagedUser(updated);
+}
+
+export async function changePassword(userId: string, oldPassword: string, newPassword: string): Promise<void> {
+  const user = await userStore.findByUserId(userId);
+  if (!user || !user.passwordHash || !verifyPassword(oldPassword, user.passwordHash)) {
+    throw new AuthError(400, 40001, "current password is incorrect");
+  }
+  if (newPassword.length < 8) {
+    throw new AuthError(400, 40001, "new password must contain at least 8 characters");
+  }
+  await userStore.update(userId, { passwordHash: hashPassword(newPassword) });
 }
 
 export function getAuthStatus() {

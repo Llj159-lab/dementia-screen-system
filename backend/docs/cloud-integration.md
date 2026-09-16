@@ -13,6 +13,10 @@ JWT_SECRET=<a-long-random-secret>
 CORS_ORIGINS=http://localhost:5173
 ```
 
+In cloud mode, users, patients, assessment records and answers, operation logs,
+file metadata, and binary file content use the task-2 CloudBase services. Run
+`sql/005_add_answer_option_code.sql` once for databases created from an earlier schema.
+
 CloudBase credentials are optional. In same-environment CloudBase hosting, first use
 the workload identity without long-lived CAM keys. Only set
 `CLOUDBASE_SECRETID` and `CLOUDBASE_SECRETKEY` when deployment logs explicitly
