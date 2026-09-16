@@ -91,7 +91,7 @@ function enumField<T extends string>(
   return value as T;
 }
 
-function authenticate(request: IncomingMessage): AuthUser {
+async function authenticate(request: IncomingMessage): Promise<AuthUser> {
   return authenticateToken(getBearerToken(request.headers.authorization));
 }
 
@@ -221,7 +221,7 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
   const path = url.pathname.slice(apiPrefix.length);
 
   if (method === "GET" && path === "/scales") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "scale:read");
     const scales = listScaleConfigs().map(({ items, ...config }) => ({ ...config, itemCount: items.length }));
     sendJson(response, 200, { code: 0, message: "ok", data: { scales } }, requestId);
@@ -229,7 +229,7 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
   }
   const scaleMatch = path.match(/^\/scales\/([^/]+)$/);
   if (method === "GET" && scaleMatch) {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "scale:read");
     const scale = findScaleConfig(decodeURIComponent(scaleMatch[1]));
     if (!scale) throw new AuthError(404, 40401, "scale not found");
@@ -238,7 +238,7 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
   }
 
   if (path === "/patients" && method === "GET") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "patient:read");
     const { page, pageSize } = pagination(url);
     const keyword = (url.searchParams.get("keyword") ?? "").toLowerCase();
@@ -252,7 +252,7 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
     return true;
   }
   if (path === "/patients" && method === "POST") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "patient:create");
     const patient = patientInput(objectBody(await readJsonBody(request)));
     if (businessStore.findPatientByCode(patient.patientCode)) {
@@ -268,7 +268,7 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
     const patientId = decodeURIComponent(patientMatch[1]);
     const patient = businessStore.findPatient(patientId);
     if (!patient) throw new AuthError(404, 40401, "patient not found");
-    const user = authenticate(request);
+    const user = await authenticate(request);
     if (method === "GET") {
       requirePermission(user, "patient:read");
       sendJson(response, 200, { code: 0, message: "ok", data: { patient } }, requestId);
@@ -299,7 +299,7 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
   }
 
   if (path === "/assessments" && method === "POST") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "assessment:create");
     const body = objectBody(await readJsonBody(request));
     const patientId = stringField(body, "patientId", { required: true })!;
@@ -345,7 +345,7 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
     return true;
   }
   if (path === "/assessments" && method === "GET") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "assessment:read");
     const { page, pageSize } = pagination(url);
     const records = filterAssessments(url).map(({ answers, ...assessment }) => ({ ...assessment, answerCount: answers.length }));
@@ -354,7 +354,7 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
   }
   const assessmentMatch = path.match(/^\/assessments\/([^/]+)$/);
   if (assessmentMatch && method === "GET") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "assessment:read");
     const assessment = businessStore.findAssessment(decodeURIComponent(assessmentMatch[1]));
     if (!assessment) throw new AuthError(404, 40401, "assessment not found");
@@ -364,7 +364,7 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
   }
 
   if (path === "/statistics/overview" && method === "GET") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "assessment:read");
     const assessments = businessStore.listAssessments();
     const scored = assessments.filter((item) => item.scoreSummary.isAbnormal !== null);
@@ -381,7 +381,7 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
     return true;
   }
   if (path === "/statistics/score-distribution" && method === "GET") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "assessment:read");
     const scaleCode = url.searchParams.get("scaleCode");
     const counts = new Map<string, number>();
@@ -399,7 +399,7 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
 
   const reportMatch = path.match(/^\/reports\/assessments\/([^/]+)\.pdf$/);
   if (reportMatch && method === "GET") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "report:export");
     const assessment = businessStore.findAssessment(decodeURIComponent(reportMatch[1]));
     if (!assessment) throw new AuthError(404, 40401, "assessment not found");
@@ -416,7 +416,7 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
     return true;
   }
   if (path === "/reports/assessments.xls" && method === "GET") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "report:export");
     const content = createAssessmentsExcel(filterAssessments(url), businessStore.listPatients());
     response.statusCode = 200;
@@ -430,20 +430,20 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
   }
 
   if (path === "/system/accounts" && method === "GET") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "system:admin");
-    sendJson(response, 200, { code: 0, message: "ok", data: { accounts: listManagedUsers() } }, requestId);
+    sendJson(response, 200, { code: 0, message: "ok", data: { accounts: await listManagedUsers() } }, requestId);
     return true;
   }
   if (path === "/system/accounts" && method === "POST") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "system:admin");
     const body = objectBody(await readJsonBody(request));
     const roles = body.roleCodes;
     if (!Array.isArray(roles) || roles.length === 0 || roles.some((role) => !ROLE_CODES.includes(role as RoleCode))) {
       throw new AuthError(400, 40001, "roleCodes is invalid");
     }
-    const account = createManagedUser({
+    const account = await createManagedUser({
       username: stringField(body, "username", { required: true })!,
       password: stringField(body, "password", { required: true })!,
       displayName: stringField(body, "displayName", { required: true })!,
@@ -456,7 +456,7 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
   }
   const accountMatch = path.match(/^\/system\/accounts\/([^/]+)$/);
   if (accountMatch && method === "PATCH") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "system:admin");
     const accountId = decodeURIComponent(accountMatch[1]);
     const body = objectBody(await readJsonBody(request));
@@ -467,7 +467,7 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
     if (accountId === user.userId && body.status === "disabled") {
       throw new AuthError(400, 40001, "cannot disable the current account");
     }
-    const account = updateManagedUser(accountId, {
+    const account = await updateManagedUser(accountId, {
       displayName: stringField(body, "displayName") ?? undefined,
       roleCodes: roles as RoleCode[] | undefined,
       status: enumField(body, "status", ["active", "disabled", "pending"] as const) ?? undefined,
@@ -477,9 +477,9 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
     return true;
   }
   if (path === "/system/password" && method === "PUT") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     const body = objectBody(await readJsonBody(request));
-    changePassword(
+    await changePassword(
       user.userId,
       stringField(body, "currentPassword", { required: true })!,
       stringField(body, "newPassword", { required: true })!,
@@ -489,7 +489,7 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
     return true;
   }
   if (path === "/system/operation-logs" && method === "GET") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "operation_log:read");
     const { page, pageSize } = pagination(url);
     const action = url.searchParams.get("action");

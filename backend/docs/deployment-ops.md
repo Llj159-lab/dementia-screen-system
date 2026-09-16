@@ -1,11 +1,11 @@
 # 任务包 2：部署与运维验收清单
 
-## 已完成的本地交付
+## 已完成的交付
 
 - 后端 TypeScript 服务可以启动；
 - 统一 JSON 返回结构和 `X-Request-Id`；
 - Web 登录、Bearer Token、退出登录和 RBAC；
-- 本地文件上传、元数据查询、列表和下载；
+- CloudBase 私有对象存储文件上传、元数据查询、列表和下载；
 - PostgreSQL 建表脚本；
 - 云函数健康检查脚手架。
 
@@ -29,10 +29,8 @@
 
 ## Scope boundary
 
-- The TypeScript service has not yet been changed to use the cloud PostgreSQL
-  connection.
-- The TypeScript file adapter is still local; the private cloud bucket is
-  configured but is not the local adapter's backend.
+- WeChat mini-program identity integration remains outside this backend
+  foundation; the web password login is available.
 - WeChat mini-program identity integration is outside this backend foundation.
 - Production-grade monitoring, alerting, and disaster recovery are outside this
   course assignment.

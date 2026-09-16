@@ -17,7 +17,9 @@ Every JSON response uses:
 
 `GET /api/v1/health`
 
-The endpoint reports service process status and explicitly reports unconfigured dependencies. It is not a database readiness check yet.
+The endpoint reports service process status plus database, business-store, and
+object-storage status. In CloudBase mode it is the basic deployment readiness
+check.
 
 ## Not found
 
@@ -38,7 +40,8 @@ Request body:
 }
 ```
 
-The response contains a temporary bearer token and a public user object. Demo user records are persisted in `data/users.json` for local development; this is not the cloud users collection or a production identity service.
+The response contains a bearer token and a public user object. In CloudBase
+mode, users are read from the PostgreSQL `users` table.
 
 ### Current user
 
@@ -101,5 +104,5 @@ Requires `file:read` and returns file metadata.
 
 Requires `file:read` and returns the binary file. This download response is not JSON.
 
-The local file adapter reports `mode: local_file` from the health endpoint. A
-cloud storage adapter still needs the team's bucket configuration.
+With `STORAGE_DRIVER=cloudbase`, files are uploaded through the CloudBase SDK
+and metadata is stored in PostgreSQL. The storage bucket remains private.

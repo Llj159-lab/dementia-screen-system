@@ -24,6 +24,7 @@ import {
   revokeToken,
   type AuthUser,
 } from "./auth/auth.js";
+import { getBusinessStoreStatus, handleBusinessRoute } from "./business/routes.js";
 
 const port = Number(process.env.PORT ?? 3000);
 const apiPrefix = process.env.API_PREFIX ?? "/api/v1";
@@ -207,7 +208,7 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
             environment: process.env.NODE_ENV ?? "development",
             startedAt: startedAt.toISOString(),
             uptimeSeconds: Math.floor(process.uptime()),
-            dependencies: { database, objectStorage },
+            dependencies: { database, businessStore: getBusinessStoreStatus(), objectStorage },
             authentication: getAuthStatus(),
           },
         },
@@ -232,6 +233,19 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
     if (method === "GET" && url.pathname === `${apiPrefix}/auth/me`) {
       const { user } = await requireUser(request);
       sendJson(response, 200, { code: 0, message: "ok", data: { user } }, requestId);
+      return;
+    }
+
+    if (await handleBusinessRoute({
+      request,
+      response,
+      url,
+      method,
+      requestId,
+      apiPrefix,
+      sendJson,
+      readJsonBody,
+    })) {
       return;
     }
 
@@ -355,12 +369,18 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
   }
 }
 
-const server = createServer(handleRequest);
+export function createBackendServer() {
+  return createServer(handleRequest);
+}
 
-server.listen(port, () => {
-  console.log(`AD SCD backend listening on http://localhost:${port}`);
-  console.log(`Health endpoint: http://localhost:${port}${apiPrefix}/health`);
-});
+const server = createBackendServer();
+
+if (process.argv[1]?.endsWith("server.ts") || process.argv[1]?.endsWith("server.js")) {
+  server.listen(port, () => {
+    console.log(`AD SCD backend listening on http://localhost:${port}`);
+    console.log(`Health endpoint: http://localhost:${port}${apiPrefix}/health`);
+  });
+}
 
 function shutdown(signal: string): void {
   console.log(`Received ${signal}; shutting down`);

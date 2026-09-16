@@ -1,5 +1,14 @@
 # 认知评估量表评分系统
 
+本仓库的整合分支 `integration/all-tasks` 汇集了任务1评分引擎、任务2
+CloudBase后端基础服务、任务3业务接口和任务5 Web管理后台。微信小程序
+任务4不在当前远端分支列表中，需要项目组将其分支推送后再合并。
+
+整合验收重点：后端先执行 `backend/npm run typecheck`、`backend/npm run
+build` 和业务测试；前端在安装依赖后执行 `web-admin/npm run typecheck` 与
+`web-admin/npm run build`。云端运行时通过环境变量切换到 CloudBase，前端
+示例配置已关闭 Mock 并指向部署地址。
+
 基于 6 份 PDF 量表原始资料构建的**认知障碍评估量表数据库 + 评分引擎**。
 
 对 6 个常用量表（SCD-Q9、GDS-15、FAQ、MMSE、MoCA-B、CDR）进行标准化配置与统一计分，
