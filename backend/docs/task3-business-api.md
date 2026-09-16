@@ -87,7 +87,7 @@ Create/submit example:
 
 For `submitted` records, required items and option codes are validated against `fixtures/task1-scale-configs.json`. `SUM` and `ITEMIZED` configurations are calculated only from option scores supplied by task 1; education-dependent cutoffs also use task-1 metadata. No clinical thresholds are invented here.
 
-CDR's overall score requires the complex task-1 algorithm that has not been uploaded. CDR answers are still saved, but `scoreSummary.scoringStatus` is `pending_task1_engine`, its total/result are `null`, and a warning is returned. After task 1 publishes its callable scoring module, replace the CDR branch in `src/business/scoring.ts`; no frontend contract needs to change.
+CDR uses the task-1 Morris (1993) algorithm with memory as the primary domain and the other five domains as secondary domains. The response includes the global CDR in `totalScore`, domain scores in `subScores`, and CDR-SB in `extra.cdrSumOfBoxes`. All six scales now return `scoringStatus: calculated` for valid submitted answers.
 
 Assessment list query parameters: `page`, `pageSize`, `patientId`, `scaleCode`, `status`, `from`, and `to`. Dates are ISO 8601 strings.
 

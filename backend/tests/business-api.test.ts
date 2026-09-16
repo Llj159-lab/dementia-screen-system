@@ -93,11 +93,31 @@ test("submitted SCD-Q9 assessment is scored from task-1 configuration", async ()
   assert.equal(details.status, 200);
 });
 
+test("submitted CDR assessment uses the task-1 Morris scoring rules", async () => {
+  const answers = [
+    "CDR_MEMORY", "CDR_ORIENTATION", "CDR_JUDGMENT",
+    "CDR_COMMUNITY", "CDR_HOME", "CDR_PERSONAL_CARE",
+  ].map((itemCode) => ({ itemCode, optionCode: "1" }));
+  const created = await api("/assessments", {
+    method: "POST",
+    body: JSON.stringify({ patientId, scaleCode: "CDR", status: "submitted", answers }),
+  });
+  assert.equal(created.status, 201);
+  const body = await created.json() as {
+    data: { assessment: { scoreSummary: {
+      totalScore: number; scoringStatus: string; extra: { cdrSumOfBoxes: number };
+    } } };
+  };
+  assert.equal(body.data.assessment.scoreSummary.totalScore, 1);
+  assert.equal(body.data.assessment.scoreSummary.extra.cdrSumOfBoxes, 6);
+  assert.equal(body.data.assessment.scoreSummary.scoringStatus, "calculated");
+});
+
 test("statistics and report exports are available", async () => {
   const overview = await api("/statistics/overview");
   const overviewBody = await overview.json() as { data: { patientTotal: number; assessmentTotal: number } };
   assert.equal(overviewBody.data.patientTotal, 1);
-  assert.equal(overviewBody.data.assessmentTotal, 1);
+  assert.equal(overviewBody.data.assessmentTotal, 2);
 
   const pdf = await api(`/reports/assessments/${assessmentId}.pdf`);
   assert.equal(pdf.status, 200);

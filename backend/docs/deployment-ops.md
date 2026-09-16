@@ -17,27 +17,29 @@
 
 以上内容来自用户提供的控制台截图；本工作区没有直接登录腾讯云控制台复核。
 
-## 你需要在腾讯云控制台完成
+## 当前云端状态
 
 环境：`ad-scd-dev-d1g1y08v5962945fd`
 
-1. 为团队成员添加开发权限，至少让负责数据库、前端联调和测试的成员能查看对应资源。
-2. 部署 `cloud-functions/ad-scd-health`，入口为 `index.main`。
-3. 设置环境变量 `CLOUD_ENV_ID`，值为 `ad-scd-dev-d1g1y08v5962945fd`。
-4. 运行一次 `/api/v1/health` 云函数调用并保存成功截图。
-5. 创建私有云存储目录，至少区分量表刺激材料和评估报告。
-6. 在云存储规则中禁止未登录用户读取或上传敏感文件。
-7. 如果控制台提供日志页面，保存一次云函数调用日志作为运维证明。
+- CloudBase environment: `ad-scd-dev-d1g1y08v5962945fd`
+- PostgreSQL tables: created
+- Private storage bucket `ad-scd-files`: created
+- `storage.objects` authenticated read/upload policies: configured
+- Health-check cloud function: deployed by the project owner
 
-## 不要在作业中声称已经完成的事项
+## 整合后上线步骤
 
-- 云函数正式业务 API 已上线；
-- PostgreSQL 已被本地后端自动连接；
-- 微信小程序真实身份登录已经完成；
-- 云存储上传/下载已经完成；
-- 已经配置生产级监控、告警或多实例容灾。
+1. 在 CloudBase SQL 编辑器执行 `sql/005_add_answer_option_code.sql`；
+2. 将包含任务3和任务5整合代码的分支部署为 Node.js 服务；
+3. 设置 `DATA_DRIVER=cloudbase`、`STORAGE_DRIVER=cloudbase`、`JWT_SECRET`；
+4. 将 Web 静态站点域名加入 `CORS_ORIGINS`；
+5. 重新部署后检查 `/api/v1/health`，其中 `database` 和 `businessStore` 均应显示 `connected`；
+6. 用 Web 后台完成一次登录、新建患者、查看测评记录、导出报告的端到端验证。
 
-除非控制台中确实出现了对应成功结果，否则这些只能写成“待部署”或“未配置”。
+生产级监控、告警和灾备不属于本课程任务范围。
+
+The cloud console should be used as the source of truth for future deployment
+changes.
 
 ## 日常运维最小方案
 

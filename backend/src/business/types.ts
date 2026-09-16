@@ -34,6 +34,10 @@ export type ScoreSummary = {
   scoringStatus: "calculated" | "pending_task1_engine";
   scoringMethod: string;
   warning: string | null;
+  subScores?: Record<string, number>;
+  cutoffGroup?: string | null;
+  cutoffValue?: number | null;
+  extra?: Record<string, unknown>;
 };
 
 export type Assessment = {

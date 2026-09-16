@@ -13,7 +13,7 @@ import {
   type AuthUser,
   type RoleCode,
 } from "../auth/auth.js";
-import { LocalBusinessStore } from "./business-store.js";
+import { createBusinessStore } from "./business-store.js";
 import { createAssessmentPdf, createAssessmentsExcel } from "./exports.js";
 import {
   calculateScore,
@@ -43,7 +43,7 @@ export type BusinessRouteContext = {
   readJsonBody: ReadJsonBody;
 };
 
-const businessStore = new LocalBusinessStore();
+const businessStore = createBusinessStore();
 
 function objectBody(body: unknown): Record<string, unknown> {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
@@ -91,7 +91,7 @@ function enumField<T extends string>(
   return value as T;
 }
 
-function authenticate(request: IncomingMessage): AuthUser {
+function authenticate(request: IncomingMessage): Promise<AuthUser> {
   return authenticateToken(getBearerToken(request.headers.authorization));
 }
 
@@ -144,15 +144,15 @@ function patientInput(body: Record<string, unknown>, existing?: Patient): Patien
   };
 }
 
-function addLog(
+async function addLog(
   user: AuthUser,
   requestId: string,
   action: string,
   resourceType: string,
   resourceId: string | null,
   metadata: Record<string, unknown> = {},
-): void {
-  businessStore.addLog({ userId: user.userId, action, resourceType, resourceId, requestId, metadata });
+): Promise<void> {
+  await businessStore.addLog({ userId: user.userId, action, resourceType, resourceId, requestId, metadata });
 }
 
 function assessmentAnswers(body: Record<string, unknown>): SubmittedAnswer[] {
@@ -200,13 +200,13 @@ function pendingScore(maximumScore: number, method: string): ScoreSummary {
   };
 }
 
-function filterAssessments(url: URL): Assessment[] {
+async function filterAssessments(url: URL): Promise<Assessment[]> {
   const patientId = url.searchParams.get("patientId");
   const scaleCode = url.searchParams.get("scaleCode");
   const status = url.searchParams.get("status");
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
-  return businessStore.listAssessments().filter((item) =>
+  return (await businessStore.listAssessments()).filter((item) =>
     (!patientId || item.patientId === patientId) &&
     (!scaleCode || item.scaleCode === scaleCode) &&
     (!status || item.status === status) &&
@@ -221,7 +221,7 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
   const path = url.pathname.slice(apiPrefix.length);
 
   if (method === "GET" && path === "/scales") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "scale:read");
     const scales = listScaleConfigs().map(({ items, ...config }) => ({ ...config, itemCount: items.length }));
     sendJson(response, 200, { code: 0, message: "ok", data: { scales } }, requestId);
@@ -229,7 +229,7 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
   }
   const scaleMatch = path.match(/^\/scales\/([^/]+)$/);
   if (method === "GET" && scaleMatch) {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "scale:read");
     const scale = findScaleConfig(decodeURIComponent(scaleMatch[1]));
     if (!scale) throw new AuthError(404, 40401, "scale not found");
@@ -238,13 +238,13 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
   }
 
   if (path === "/patients" && method === "GET") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "patient:read");
     const { page, pageSize } = pagination(url);
     const keyword = (url.searchParams.get("keyword") ?? "").toLowerCase();
     const gender = url.searchParams.get("gender");
     const status = url.searchParams.get("status");
-    const patients = businessStore.listPatients().filter((patient) =>
+    const patients = (await businessStore.listPatients()).filter((patient) =>
       (!keyword || patient.name.toLowerCase().includes(keyword) || patient.patientCode.toLowerCase().includes(keyword)) &&
       (!gender || patient.gender === gender) && (!status || patient.status === status)
     ).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -252,23 +252,23 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
     return true;
   }
   if (path === "/patients" && method === "POST") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "patient:create");
     const patient = patientInput(objectBody(await readJsonBody(request)));
-    if (businessStore.findPatientByCode(patient.patientCode)) {
+    if (await businessStore.findPatientByCode(patient.patientCode)) {
       throw new AuthError(409, 40901, "patientCode already exists");
     }
-    businessStore.savePatient(patient);
-    addLog(user, requestId, "patient.create", "patient", patient.patientId, { patientCode: patient.patientCode });
+    await businessStore.savePatient(patient);
+    await addLog(user, requestId, "patient.create", "patient", patient.patientId, { patientCode: patient.patientCode });
     sendJson(response, 201, { code: 0, message: "created", data: { patient } }, requestId);
     return true;
   }
   const patientMatch = path.match(/^\/patients\/([^/]+)$/);
   if (patientMatch) {
     const patientId = decodeURIComponent(patientMatch[1]);
-    const patient = businessStore.findPatient(patientId);
+    const patient = await businessStore.findPatient(patientId);
     if (!patient) throw new AuthError(404, 40401, "patient not found");
-    const user = authenticate(request);
+    const user = await authenticate(request);
     if (method === "GET") {
       requirePermission(user, "patient:read");
       sendJson(response, 200, { code: 0, message: "ok", data: { patient } }, requestId);
@@ -277,33 +277,33 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
     if (method === "PUT" || method === "PATCH") {
       requirePermission(user, "patient:update");
       const updated = patientInput(objectBody(await readJsonBody(request)), patient);
-      const duplicate = businessStore.findPatientByCode(updated.patientCode);
+      const duplicate = await businessStore.findPatientByCode(updated.patientCode);
       if (duplicate && duplicate.patientId !== patient.patientId) {
         throw new AuthError(409, 40901, "patientCode already exists");
       }
-      businessStore.savePatient(updated);
-      addLog(user, requestId, "patient.update", "patient", patientId);
+      await businessStore.savePatient(updated);
+      await addLog(user, requestId, "patient.update", "patient", patientId);
       sendJson(response, 200, { code: 0, message: "ok", data: { patient: updated } }, requestId);
       return true;
     }
     if (method === "DELETE") {
       requirePermission(user, "patient:delete");
-      if (businessStore.listAssessments().some((item) => item.patientId === patientId)) {
+      if ((await businessStore.listAssessments()).some((item) => item.patientId === patientId)) {
         throw new AuthError(409, 40901, "patient has assessments; archive the patient instead");
       }
-      businessStore.deletePatient(patientId);
-      addLog(user, requestId, "patient.delete", "patient", patientId, { patientCode: patient.patientCode });
+      await businessStore.deletePatient(patientId);
+      await addLog(user, requestId, "patient.delete", "patient", patientId, { patientCode: patient.patientCode });
       sendJson(response, 200, { code: 0, message: "ok", data: null }, requestId);
       return true;
     }
   }
 
   if (path === "/assessments" && method === "POST") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "assessment:create");
     const body = objectBody(await readJsonBody(request));
     const patientId = stringField(body, "patientId", { required: true })!;
-    const patient = businessStore.findPatient(patientId);
+    const patient = await businessStore.findPatient(patientId);
     if (!patient) throw new AuthError(404, 40401, "patient not found");
     const scaleCode = stringField(body, "scaleCode", { required: true })!;
     const scaleVersion = stringField(body, "scaleVersion") ?? undefined;
@@ -339,39 +339,40 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
       createdAt: timestamp,
       updatedAt: timestamp,
     };
-    businessStore.saveAssessment(assessment);
-    addLog(user, requestId, "assessment.create", "assessment", assessmentId, { scaleCode, status });
+    await businessStore.saveAssessment(assessment);
+    await addLog(user, requestId, "assessment.create", "assessment", assessmentId, { scaleCode, status });
     sendJson(response, 201, { code: 0, message: "created", data: { assessment } }, requestId);
     return true;
   }
   if (path === "/assessments" && method === "GET") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "assessment:read");
     const { page, pageSize } = pagination(url);
-    const records = filterAssessments(url).map(({ answers, ...assessment }) => ({ ...assessment, answerCount: answers.length }));
+    const records = (await filterAssessments(url)).map(({ answers, ...assessment }) => ({ ...assessment, answerCount: answers.length }));
     sendJson(response, 200, { code: 0, message: "ok", data: paged(records, page, pageSize) }, requestId);
     return true;
   }
   const assessmentMatch = path.match(/^\/assessments\/([^/]+)$/);
   if (assessmentMatch && method === "GET") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "assessment:read");
-    const assessment = businessStore.findAssessment(decodeURIComponent(assessmentMatch[1]));
+    const assessment = await businessStore.findAssessment(decodeURIComponent(assessmentMatch[1]));
     if (!assessment) throw new AuthError(404, 40401, "assessment not found");
-    const patient = businessStore.findPatient(assessment.patientId) ?? null;
+    const patient = (await businessStore.findPatient(assessment.patientId)) ?? null;
     sendJson(response, 200, { code: 0, message: "ok", data: { assessment, patient } }, requestId);
     return true;
   }
 
   if (path === "/statistics/overview" && method === "GET") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "assessment:read");
-    const assessments = businessStore.listAssessments();
+    const assessments = await businessStore.listAssessments();
+    const patients = await businessStore.listPatients();
     const scored = assessments.filter((item) => item.scoreSummary.isAbnormal !== null);
     const abnormal = scored.filter((item) => item.scoreSummary.isAbnormal).length;
     sendJson(response, 200, { code: 0, message: "ok", data: {
-      patientTotal: businessStore.listPatients().length,
-      activePatientTotal: businessStore.listPatients().filter((item) => item.status === "active").length,
+      patientTotal: patients.length,
+      activePatientTotal: patients.filter((item) => item.status === "active").length,
       assessmentTotal: assessments.length,
       submittedAssessmentTotal: assessments.filter((item) => item.status === "submitted").length,
       scoredAssessmentTotal: scored.length,
@@ -381,11 +382,11 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
     return true;
   }
   if (path === "/statistics/score-distribution" && method === "GET") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "assessment:read");
     const scaleCode = url.searchParams.get("scaleCode");
     const counts = new Map<string, number>();
-    businessStore.listAssessments().filter((item) =>
+    (await businessStore.listAssessments()).filter((item) =>
       (!scaleCode || item.scaleCode === scaleCode) && item.scoreSummary.totalScore !== null,
     ).forEach((item) => {
       const key = String(item.scoreSummary.totalScore);
@@ -399,11 +400,11 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
 
   const reportMatch = path.match(/^\/reports\/assessments\/([^/]+)\.pdf$/);
   if (reportMatch && method === "GET") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "report:export");
-    const assessment = businessStore.findAssessment(decodeURIComponent(reportMatch[1]));
+    const assessment = await businessStore.findAssessment(decodeURIComponent(reportMatch[1]));
     if (!assessment) throw new AuthError(404, 40401, "assessment not found");
-    const patient = businessStore.findPatient(assessment.patientId);
+    const patient = await businessStore.findPatient(assessment.patientId);
     if (!patient) throw new AuthError(404, 40401, "patient not found");
     const content = createAssessmentPdf(patient, assessment);
     response.statusCode = 200;
@@ -412,51 +413,51 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
     response.setHeader("Content-Length", content.length);
     response.setHeader("X-Request-Id", requestId);
     response.end(content);
-    addLog(user, requestId, "report.export_pdf", "assessment", assessment.assessmentId);
+    await addLog(user, requestId, "report.export_pdf", "assessment", assessment.assessmentId);
     return true;
   }
   if (path === "/reports/assessments.xls" && method === "GET") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "report:export");
-    const content = createAssessmentsExcel(filterAssessments(url), businessStore.listPatients());
+    const content = createAssessmentsExcel(await filterAssessments(url), await businessStore.listPatients());
     response.statusCode = 200;
     response.setHeader("Content-Type", "application/vnd.ms-excel; charset=utf-8");
     response.setHeader("Content-Disposition", "attachment; filename=assessments.xls");
     response.setHeader("Content-Length", content.length);
     response.setHeader("X-Request-Id", requestId);
     response.end(content);
-    addLog(user, requestId, "report.export_excel", "assessment", null);
+    await addLog(user, requestId, "report.export_excel", "assessment", null);
     return true;
   }
 
   if (path === "/system/accounts" && method === "GET") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "system:admin");
-    sendJson(response, 200, { code: 0, message: "ok", data: { accounts: listManagedUsers() } }, requestId);
+    sendJson(response, 200, { code: 0, message: "ok", data: { accounts: await listManagedUsers() } }, requestId);
     return true;
   }
   if (path === "/system/accounts" && method === "POST") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "system:admin");
     const body = objectBody(await readJsonBody(request));
     const roles = body.roleCodes;
     if (!Array.isArray(roles) || roles.length === 0 || roles.some((role) => !ROLE_CODES.includes(role as RoleCode))) {
       throw new AuthError(400, 40001, "roleCodes is invalid");
     }
-    const account = createManagedUser({
+    const account = await createManagedUser({
       username: stringField(body, "username", { required: true })!,
       password: stringField(body, "password", { required: true })!,
       displayName: stringField(body, "displayName", { required: true })!,
       roleCodes: roles as RoleCode[],
       status: enumField(body, "status", ["active", "disabled", "pending"] as const) ?? "active",
     });
-    addLog(user, requestId, "account.create", "user", account.userId, { username: account.username });
+    await addLog(user, requestId, "account.create", "user", account.userId, { username: account.username });
     sendJson(response, 201, { code: 0, message: "created", data: { account } }, requestId);
     return true;
   }
   const accountMatch = path.match(/^\/system\/accounts\/([^/]+)$/);
   if (accountMatch && method === "PATCH") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "system:admin");
     const accountId = decodeURIComponent(accountMatch[1]);
     const body = objectBody(await readJsonBody(request));
@@ -467,34 +468,34 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
     if (accountId === user.userId && body.status === "disabled") {
       throw new AuthError(400, 40001, "cannot disable the current account");
     }
-    const account = updateManagedUser(accountId, {
+    const account = await updateManagedUser(accountId, {
       displayName: stringField(body, "displayName") ?? undefined,
       roleCodes: roles as RoleCode[] | undefined,
       status: enumField(body, "status", ["active", "disabled", "pending"] as const) ?? undefined,
     });
-    addLog(user, requestId, "account.update", "user", accountId);
+    await addLog(user, requestId, "account.update", "user", accountId);
     sendJson(response, 200, { code: 0, message: "ok", data: { account } }, requestId);
     return true;
   }
   if (path === "/system/password" && method === "PUT") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     const body = objectBody(await readJsonBody(request));
-    changePassword(
+    await changePassword(
       user.userId,
       stringField(body, "currentPassword", { required: true })!,
       stringField(body, "newPassword", { required: true })!,
     );
-    addLog(user, requestId, "account.password_change", "user", user.userId);
+    await addLog(user, requestId, "account.password_change", "user", user.userId);
     sendJson(response, 200, { code: 0, message: "password changed; sign in again", data: null }, requestId);
     return true;
   }
   if (path === "/system/operation-logs" && method === "GET") {
-    const user = authenticate(request);
+    const user = await authenticate(request);
     requirePermission(user, "operation_log:read");
     const { page, pageSize } = pagination(url);
     const action = url.searchParams.get("action");
     const userId = url.searchParams.get("userId");
-    const logs = businessStore.listLogs().filter((log) =>
+    const logs = (await businessStore.listLogs()).filter((log) =>
       (!action || log.action === action) && (!userId || log.userId === userId),
     ).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     sendJson(response, 200, { code: 0, message: "ok", data: paged(logs, page, pageSize) }, requestId);
@@ -503,6 +504,6 @@ export async function handleBusinessRoute(context: BusinessRouteContext): Promis
   return false;
 }
 
-export function getBusinessStoreStatus(): ReturnType<LocalBusinessStore["getStatus"]> {
+export async function getBusinessStoreStatus(): Promise<Record<string, unknown>> {
   return businessStore.getStatus();
 }
