@@ -13,8 +13,6 @@ This directory contains the backend foundation for the AD preclinical SCD screen
 - Local persistent user store for development
 - Explicit local-only/not-connected status for database and object storage
 - PostgreSQL migration for the assignment database
-- Task 3 patient, assessment, statistics, report, account, and audit APIs
-- Automated business-API integration tests
 
 ## Local run
 
@@ -37,16 +35,8 @@ On first start, the development auth layer creates `data/users.json` with three 
 
 The local service does not claim that a cloud database, cloud storage bucket, authentication service, or cloud function has been configured. The health endpoint reports the schema version and collection count separately from connection status.
 
-For the PostgreSQL assignment workflow, see `docs/postgres-assignment-runbook.md` and
-`docs/task2-collaboration.md`.
-
-For cloud-function deployment and the minimum operations checklist, see
-`docs/deployment-ops.md`. The dependency-free smoke-test function is under
+For cloud-function deployment and operations, see `docs/deployment-ops.md`.
+The dependency-free smoke-test function is under
 `cloud-functions/ad-scd-health`.
 
-Task-package 1 scale data has been converted for PostgreSQL under
-`fixtures/task1-scale-configs.json` and `sql/004_seed_scale_configs.sql`.
-See `docs/task1-conversion.md` before importing it.
-
-Task 3 endpoint details and the exact task-1/task-2 integration boundary are documented in
-`docs/task3-business-api.md`.
+The formal API and database documentation is under `docs/`.
