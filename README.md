@@ -1,94 +1,98 @@
-# 认知评估量表评分系统
+# dementia-screen-system
 
-本仓库的整合分支 `integration/all-tasks` 汇集了任务1评分引擎、任务2
-CloudBase后端基础服务、任务3业务接口和任务5 Web管理后台。微信小程序
-任务4不在当前远端分支列表中，需要项目组将其分支推送后再合并。
+面向医院的阿尔茨海默病前期认知筛查评估系统。项目用于课程作业和小组协作，提供微信小程序端、Web 管理后台、量表评分引擎以及 CloudBase 后端基础服务。
 
-整合验收重点：后端先执行 `backend/npm run typecheck`、`backend/npm run
-build` 和业务测试；前端在安装依赖后执行 `web-admin/npm run typecheck` 与
-`web-admin/npm run build`。云端运行时通过环境变量切换到 CloudBase，前端
-示例配置已关闭 Mock 并指向部署地址。
+## 项目目标
 
-基于 6 份 PDF 量表原始资料构建的**认知障碍评估量表数据库 + 评分引擎**。
+- 医护人员在微信小程序中录入患者信息并完成认知量表筛查；
+- 通过统一评分规则计算 SCD-Q9、GDS-15、FAQ、MMSE、MoCA-B、CDR 等量表；
+- 在 Web 管理后台查看患者、测评记录、统计数据和筛查报告；
+- 使用 CloudBase PostgreSQL 保存业务数据，使用私有云存储保存量表资源和报告文件；
+- 通过账号、JWT 和角色权限控制后台访问。
 
-对 6 个常用量表（SCD-Q9、GDS-15、FAQ、MMSE、MoCA-B、CDR）进行标准化配置与统一计分，
-做到**数据在库、逻辑在码、计分逻辑唯一**。
+## 任务分支
 
-## 特性
+| 分支 | 内容 |
+| --- | --- |
+| `task1` | 量表配置、评分算法、数据库种子数据和评分测试 |
+| `task2-backend` | 后端基础服务初版 |
+| `task2-cloud-integration` | CloudBase PostgreSQL、私有云存储、鉴权和部署支持 |
+| `task3-business-api` | 患者、测评、统计、报告、账号和操作日志接口 |
+| `task4-mini-program` | 微信小程序端 |
+| `task5-web-admin` | Vue 3 Web 管理后台 |
+| `task-6` | UI 原型、量表素材和设计资源 |
+| `task7` | 测试、项目文档和结题材料 |
+| `integration/all-tasks` | 当前已整合任务1、任务2、任务3、任务5的最终候选分支 |
 
-- ✅ **5 张核心表 + 3 张支撑表**（MySQL 8.0，utf8mb4，InnoDB），含索引、外键、注释
-- ✅ **6 个量表完整评分算法**：累加（含反序、NA）、分项 + 教育界值、CDR 复杂（Morris 全规则）
-- ✅ **单一数据源**：`config_data.py` 同时驱动评分引擎与数据库种子数据
-- ✅ **统一计分入口** `score()`，全系统计分逻辑唯一、准确
-- ✅ 单元测试 + 演示脚本 + 完整开发文档
+任务4、任务6、任务7仍以远端各自分支为准。当前本地整合分支没有这些分支的工作树内容；合并前需要先成功获取对应远端分支，再审查目录和资源，避免仅凭分支名称认定已经纳入。
 
-## 快速开始
+## 当前整合内容
 
-```bash
-# 1. 安装依赖
-pip install -r requirements.txt
+`integration/all-tasks` 已整合：
 
-# 2. 离线评分（无需数据库）
-python scripts/demo.py
+- 6 个量表的评分引擎和配置；
+- Node.js/TypeScript 后端；
+- CloudBase PostgreSQL 和私有对象存储适配器；
+- JWT 登录、Bearer Token 和角色权限；
+- 患者、测评、统计、报告、账号和操作日志接口；
+- Vue 3 + Element Plus Web 管理后台；
+- 后端业务测试和部署文档。
 
-# 3. 建库建表 + 种子数据（可选）
-mysql -u root -p < sql/01_schema.sql
-mysql -u root -p ad_cognition < sql/02_seed_data.sql
-
-# 4. 运行测试
-python -m pytest tests/ -v
-```
-
-## 最小示例
-
-```python
-from scoring import score
-
-# 累加量表
-r = score("GDS", {"GDS_01": "是", "GDS_02": "是", "GDS_03": "否",
-                  "GDS_04": "否", "GDS_05": "否", "GDS_06": "是",
-                  "GDS_07": "否", "GDS_08": "是", "GDS_09": "是",
-                  "GDS_10": "是", "GDS_11": "否", "GDS_12": "是",
-                  "GDS_13": "否", "GDS_14": "是", "GDS_15": "是"})
-print(r.total_score, r.result_label)   # 10.0 中度抑郁
-
-# 分项量表（需受教育年限）
-r = score("MMSE", {"MMSE_01": "1", "MMSE_02": "1", "...": "1"},
-          patient={"education_years": 9})
-print(r.total_score, r.result_label, r.cutoff_value)
-
-# 复杂量表
-r = score("CDR", {"CDR_MEMORY": "1", "CDR_ORIENTATION": "1", "CDR_JUDGMENT": "1",
-                  "CDR_COMMUNITY": "1", "CDR_HOME": "0", "CDR_PERSONAL_CARE": "0"})
-print(r.total_score, r.result_label, r.extra["cdr_sb"])
-```
+整合后的后端通过环境变量选择本地或 CloudBase 运行模式。前端仍保留 Mock 模式，但 `.env.example` 默认已经指向已部署的后端地址并关闭 Mock，便于联调。
 
 ## 目录结构
 
-见 [`docs/开发说明文档.md`](docs/开发说明文档.md)（数据库设计、评分算法、部署步骤）。
+```text
+scoring/       任务1 Python 评分引擎
+db/            评分引擎数据库辅助代码
+sql/           任务1数据库脚本和种子数据
+tests/         任务1评分测试
+backend/       Node.js后端、CloudBase适配器、业务接口和部署文件
+web-admin/     Vue 3 Web管理后台
+docs/          项目开发说明和文档可读性审计
+```
 
+## 后端运行
+
+```powershell
+cd backend
+npm ci
+npm run typecheck
+npm run build
+node --test --import tsx tests/business-api.test.ts
+npm start
 ```
-scoring/   评分引擎（统一入口 score + 6 量表实现）
-db/        数据库连接与配置加载
-sql/       建表脚本 + 种子数据 + 演示数据
-tests/     单元测试（含 CDR Morris 全分支）
-scripts/   种子 SQL 生成器 + 演示脚本
-docs/      开发说明文档
+
+健康检查地址：`http://localhost:3000/api/v1/health`
+
+云端运行时需要配置 `DATA_DRIVER=cloudbase`、`STORAGE_DRIVER=cloudbase`、`CLOUDBASE_ENV_ID`、`STORAGE_BUCKET`、`JWT_SECRET` 和 `CORS_ORIGINS`。密钥、密码、JWT 和真实患者信息不得提交到 GitHub。
+
+## Web 后台运行
+
+```powershell
+cd web-admin
+npm ci
+npm run typecheck
+npm run build
+npm run dev
 ```
+
+本地开发时可以将 `VITE_USE_MOCK` 设置为 `true` 使用演示数据；与真实后端联调时设置为 `false`，并配置 `VITE_API_BASE_URL`。
 
 ## 支持量表
 
-| 编码 | 量表 | 计分类型 | 满分 |
-|---|---|---|---|
-| `SCD_Q9` | 主观认知下降自测表 | 累加 | 9 |
-| `GDS` | 老年抑郁量表 | 累加（反序） | 15 |
-| `FAQ` | 功能活动问卷 | 累加（NA） | 30 |
-| `MMSE` | 简明精神状态检查 | 分项 + 教育界值 | 30 |
-| `MOCA_B` | MoCA-B 基础量表 | 分项 + 教育界值 | 30 |
-| `CDR` | 临床痴呆评定量表 | 复杂（Morris） | 3 / CDR-SB 18 |
+| 编码 | 量表 | 类型 |
+| --- | --- | --- |
+| `SCD_Q9` | 主观认知下降自测表 | 累加 |
+| `GDS` | 老年抑郁量表 | 反向计分 |
+| `FAQ` | 功能活动问卷 | 累加和 NA 处理 |
+| `MMSE` | 简明精神状态检查 | 分项和教育界值 |
+| `MOCA_B` | MoCA-B 基础量表 | 分项和教育界值 |
+| `CDR` | 临床痴呆评定量表 | Morris 规则和 CDR-SB |
 
-## 数据准确性说明
+## 验收状态
 
-量表题目、选项、分值、界值、指导语均录入自 PDF 原始资料，并以
-`scoring/config_data.py` 为唯一权威来源；数据库种子数据由
-`scripts/generate_seed_sql.py` 自动生成，保证**库表与代码完全一致**。
+- 后端类型检查、生产编译和业务接口测试已通过；
+- 任务2云端健康检查和对象存储配置已完成；
+- 任务4、任务6、任务7尚未在当前工作树中完成代码级合并；
+- 完整验收时在已有云端服务上确认整合版本的业务接口即可，不需要重复创建新的云端环境。

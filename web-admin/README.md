@@ -20,7 +20,7 @@ npm run typecheck
 npm run dev
 ```
 
-默认启用 Mock 数据，演示账号：
+不配置环境变量时可使用 Mock 数据，演示账号：
 
 ```text
 用户名：admin_demo
@@ -35,7 +35,7 @@ npm run dev
 cp .env.example .env
 ```
 
-把 `.env` 修改为：
+本地连接已启动的后端时，把 `.env` 修改为：
 
 ```text
 VITE_API_BASE_URL=/api/v1
@@ -43,6 +43,8 @@ VITE_USE_MOCK=false
 ```
 
 开发服务器会将 `/api` 代理到 `http://localhost:3000`。先在 `backend` 目录启动任务3服务，再启动本项目即可连接后端接口。
+
+如需直接联调已部署的课程版后端，可直接参考仓库中的 `.env.example`，其中已配置后端地址并关闭 Mock。不要把包含真实密钥或患者信息的 `.env` 文件提交到 Git。
 
 ## 验证
 

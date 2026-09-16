@@ -12,7 +12,7 @@ npm test
 npm start
 ```
 
-Local data is persisted in `data/business.json` and `data/users.json`. Set `LOCAL_DATA_DIR` to move these files. The adapters intentionally remain replaceable because task 2 has not connected the real cloud database yet.
+Local development persists business demo data in `data/business.json` and user data in `data/users.json`. Set `LOCAL_DATA_DIR` to move these files. In the CloudBase deployment, authentication and file metadata use the CloudBase PostgreSQL and object-storage adapters; the business demo store remains a replaceable local adapter for this coursework integration.
 
 ## Endpoint summary
 
@@ -132,8 +132,6 @@ Password change body:
 
 All sessions for the user are revoked after a password change. Operation logs are written for patient changes, assessment submission, report exports, account changes, and password changes. Log queries support `page`, `pageSize`, `action`, and `userId`.
 
-## Remaining integration work
+## Integration note
 
-1. Task 1: connect the final callable scoring engine, especially CDR, then add golden clinical scoring cases.
-2. Task 2: replace `LocalBusinessStore` with the real cloud/PostgreSQL adapter and deploy the service/cloud functions.
-3. Frontends: use this document as the stable endpoint contract; only base URL and authentication provider should change during cloud integration.
+The endpoint contract is stable for the Web backend and mini-program. The current coursework deployment uses CloudBase adapters for authentication, PostgreSQL-backed file metadata, and private object storage. `LocalBusinessStore` supplies backend business records in the current coursework version; it can be replaced later without changing the frontend API contract.
