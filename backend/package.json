@@ -5,6 +5,7 @@
   "description": "Backend foundation for the AD preclinical SCD screening project",
   "type": "module",
   "scripts": {
+    "build": "tsc",
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "typecheck": "tsc --noEmit",

@@ -29,7 +29,7 @@ export function getCloudBaseApp() {
 
 export function getRdbClient(): RdbClient {
   const app = getCloudBaseApp() as ReturnType<typeof getCloudBaseApp> & {
-    rdb(): RdbClient;
+    rdb(options?: { database?: string; instance?: string }): RdbClient;
   };
-  return app.rdb();
+  return app.rdb({ database: "public" });
 }

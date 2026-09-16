@@ -28,6 +28,15 @@ import {
 const port = Number(process.env.PORT ?? 3000);
 const apiPrefix = process.env.API_PREFIX ?? "/api/v1";
 const serviceVersion = process.env.SERVICE_VERSION ?? "0.1.0";
+
+const HEALTH_DB_TIMEOUT_MS = 3000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>(resolve => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
 const startedAt = new Date();
 const fileStore: FileStore = process.env.STORAGE_DRIVER === "cloudbase" ? new CloudBaseFileStore() : new LocalFileStore();
 const allowedOrigins = (process.env.CORS_ORIGINS ?? "http://localhost:5173,http://localhost:8080")
@@ -173,32 +182,39 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
 
   try {
     if (method === "GET" && url.pathname === `${apiPrefix}/health`) {
-    sendJson(
-      response,
-      200,
-      {
-        code: 0,
-        message: "ok",
-        data: {
-          status: "healthy",
-          service: "ad-scd-backend",
-          version: serviceVersion,
-          environment: process.env.NODE_ENV ?? "development",
-          startedAt: startedAt.toISOString(),
-          uptimeSeconds: Math.floor(process.uptime()),
-          dependencies: {
-            database: await getDatabaseStatus(),
-            objectStorage: {
-              ...(await fileStore.getStatus() as object),
-            },
+      const dbFallback = {
+        schemaVersion: SCHEMA_VERSION,
+        collectionCount: COLLECTIONS.length,
+        provider: "unknown",
+        status: "timeout",
+        error: `check exceeded ${HEALTH_DB_TIMEOUT_MS}ms`,
+      };
+      const storageFallback = { status: "timeout" };
+      const [database, objectStorage] = await Promise.all([
+        withTimeout(getDatabaseStatus(), HEALTH_DB_TIMEOUT_MS, dbFallback),
+        withTimeout(Promise.resolve(fileStore.getStatus()), HEALTH_DB_TIMEOUT_MS, storageFallback),
+      ]);
+      sendJson(
+        response,
+        200,
+        {
+          code: 0,
+          message: "ok",
+          data: {
+            status: "healthy",
+            service: "ad-scd-backend",
+            version: serviceVersion,
+            environment: process.env.NODE_ENV ?? "development",
+            startedAt: startedAt.toISOString(),
+            uptimeSeconds: Math.floor(process.uptime()),
+            dependencies: { database, objectStorage },
+            authentication: getAuthStatus(),
           },
-          authentication: getAuthStatus(),
         },
-      },
-      requestId,
-    );
-    return;
-  }
+        requestId,
+      );
+      return;
+    }
 
     if (method === "POST" && url.pathname === `${apiPrefix}/auth/web/login`) {
       const body = await readJsonBody(request);
