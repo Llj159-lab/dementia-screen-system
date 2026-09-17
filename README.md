@@ -24,7 +24,7 @@
 | `task7` | 测试、项目文档和结题材料 |
 | `integration/all-tasks` | 当前全任务整合分支 |
 
-各任务分支仍保留为独立开发记录，最终验收以 `integration/all-tasks` 整合分支为准。
+各任务分支用于记录对应模块的开发内容，项目统一成果汇总在 `integration/all-tasks` 分支。
 
 ## 当前整合内容
 
@@ -46,16 +46,49 @@
 ## 目录结构
 
 ```text
-scoring/       任务1 Python 评分引擎
-ts/            任务1 TypeScript 评分引擎迁移包
-db/            评分引擎数据库辅助代码
-sql/           任务1数据库脚本和种子数据
-tests/         任务1评分测试
-backend/       Node.js后端、CloudBase适配器、业务接口和部署文件
-mini-program/  微信小程序端
-web-admin/     Vue 3 Web管理后台
-docs/          项目开发说明和文档可读性审计
+.
+├─ scoring/              Python 评分引擎
+├─ ts/                   TypeScript 评分引擎迁移包及测试
+├─ db/                   评分引擎数据库辅助代码
+├─ sql/                  数据库结构、迁移和种子数据
+├─ fixtures/             量表配置和测试用例
+├─ tests/                Python 评分测试
+├─ scripts/              数据生成、配置转换和辅助脚本
+├─ backend/              Node.js 后端服务
+│  ├─ src/               API、鉴权、数据库和云服务适配器
+│  ├─ tests/             后端业务接口测试
+│  ├─ cloud-functions/   云函数示例和部署入口
+│  ├─ docs/              后端接口、部署和交接文档
+│  └─ sql/               后端数据库脚本
+├─ mini-program/         微信小程序端
+│  ├─ pages/             页面
+│  ├─ services/           接口和登录服务
+│  └─ custom-tab-bar/    自定义底部导航
+├─ web-admin/             Vue 3 Web 管理后台
+│  └─ src/               页面、组件、路由和状态管理
+├─ docs/                 项目说明、接口契约和审计记录
+├─ LICENSE               MIT 许可证
+└─ README.md             项目说明
 ```
+
+## 快速入口
+
+- [后端说明](backend/README.md)
+- [Web 管理后台说明](web-admin/README.md)
+- [微信小程序说明](mini-program/README.md)
+- [评分引擎说明](ts/README.md)
+- [后端接口文档](backend/docs/api.md)
+- [业务接口说明](backend/docs/task3-business-api.md)
+- [云端部署说明](backend/docs/cloud-integration.md)
+- [文档可读性审计](docs/document-readability-audit.md)
+
+## 功能模块
+
+- 量表评分：支持 SCD-Q9、GDS-15、FAQ、MMSE、MoCA-B、CDR。
+- 微信小程序：患者信息、量表选择、测评录入、结果和报告入口。
+- Web 管理后台：登录、权限、患者管理、测评记录、统计、报告和操作日志。
+- 后端服务：统一 API、JWT 鉴权、角色权限、数据库访问和私有文件存储。
+- 协作交付：各模块保留独立开发记录，整合分支提供统一运行入口。
 
 ## 后端运行
 
@@ -110,4 +143,4 @@ npm run dev
 - 后端类型检查、生产编译和业务接口测试已通过；
 - 任务2云端健康检查和对象存储配置已完成；
 - 任务4小程序、任务6设计资源和任务7测试文档已纳入整合分支；
-- 完整验收时在已有云端服务上确认整合版本的业务接口即可，不需要重复创建新的云端环境。
+- 已配置云端服务可直接用于课程演示和接口访问，不需要重复创建新的云端环境。
