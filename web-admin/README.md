@@ -44,7 +44,17 @@ VITE_USE_MOCK=false
 
 开发服务器会将 `/api` 代理到 `http://localhost:3000`。先在 `backend` 目录启动任务3服务，再启动本项目即可连接后端接口。
 
-如需直接联调已部署的课程版后端，可直接参考仓库中的 `.env.example`，其中已配置后端地址并关闭 Mock。不要把包含真实密钥或患者信息的 `.env` 文件提交到 Git。
+连接 CloudBase 已部署后端时，可参考 `.env.cloud.example` 或当前 `.env.example`。不要把包含真实密钥、账号密码或患者信息的 `.env` 文件提交到 Git。
+
+## 云端部署
+
+1. 先部署整合后的 `backend`，执行 `backend/sql/005_add_answer_option_code.sql`；
+2. 将 `.env.cloud.example` 复制为 `.env.production`；
+3. 执行 `npm ci && npm run build`；
+4. 将 `dist/` 发布到 CloudBase 静态网站托管；
+5. 把静态网站域名加入后端 `CORS_ORIGINS` 后重新部署后端。
+
+完成后，Web 登录、患者管理、测评记录、统计看板、PDF/Excel 导出、账号管理与操作日志均使用云端真实数据。
 
 ## 验证
 

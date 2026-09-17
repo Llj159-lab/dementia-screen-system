@@ -27,16 +27,18 @@
 - `storage.objects` authenticated read/upload policies: configured
 - Health-check cloud function: deployed by the project owner
 
-## Scope boundary
+## 整合后上线步骤
 
-- WeChat mini-program identity integration remains outside this backend
-  foundation; the web password login is available.
-- WeChat mini-program identity integration is outside this backend foundation.
-- Production-grade monitoring, alerting, and disaster recovery are outside this
-  course assignment.
+1. 在 CloudBase SQL 编辑器执行 `sql/005_add_answer_option_code.sql`；
+2. 将包含任务3和任务5整合代码的分支部署为 Node.js 服务；
+3. 设置 `DATA_DRIVER=cloudbase`、`STORAGE_DRIVER=cloudbase`、`JWT_SECRET`；
+4. 将 Web 静态站点域名加入 `CORS_ORIGINS`；
+5. 重新部署后检查 `/api/v1/health`，其中 `database` 和 `businessStore` 均应显示 `connected`；
+6. 用 Web 后台完成一次登录、新建患者、查看测评记录、导出报告的端到端验证。
 
-The cloud console should be used as the source of truth for future deployment
-changes.
+生产级监控、告警和灾备不属于本课程任务范围。
+
+后续部署变更以 CloudBase 控制台为准。
 
 ## 日常运维最小方案
 

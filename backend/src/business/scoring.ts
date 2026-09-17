@@ -8,6 +8,7 @@ type ScaleItem = {
   code: string;
   no: number;
   text: string;
+  domain?: string | null;
   required: boolean;
   max_score: number;
   options: ScaleOption[];
@@ -62,6 +63,43 @@ export type SubmittedAnswer = {
   answerStatus?: "answered" | "unanswered" | "na" | "unknown" | "refused";
   observation?: Record<string, unknown>;
 };
+
+const CDR_DOMAIN_CODES = [
+  "CDR_MEMORY", "CDR_ORIENTATION", "CDR_JUDGMENT",
+  "CDR_COMMUNITY", "CDR_HOME", "CDR_PERSONAL_CARE",
+] as const;
+const CDR_LABELS: Record<string, string> = {
+  "0": "无痴呆（CDR=0）", "0.5": "可疑痴呆（CDR=0.5）",
+  "1": "轻度痴呆（CDR=1）", "2": "中度痴呆（CDR=2）", "3": "重度痴呆（CDR=3）",
+};
+
+function closest(values: number[], target: number): number {
+  return values.reduce((best, value) => {
+    const bestDistance = Math.abs(best - target);
+    const distance = Math.abs(value - target);
+    return distance < bestDistance || (distance === bestDistance && value > best) ? value : best;
+  });
+}
+
+/** Morris (1993) CDR global score, ported from the task-1 engine. */
+export function globalCdr(memory: number, secondaries: number[]): number {
+  if (secondaries.length !== 5) throw new Error("CDR requires five secondary domains");
+  if (memory === 0) return secondaries.filter((value) => value >= 0.5).length >= 2 ? 0.5 : 0;
+  if (memory === 0.5) return secondaries.filter((value) => value >= 1).length >= 3 ? 1 : 0.5;
+  const equal = secondaries.filter((value) => value === memory).length;
+  const greater = secondaries.filter((value) => value > memory).length;
+  const lower = secondaries.filter((value) => value < memory).length;
+  if (equal >= 3 || (equal >= 1 && equal <= 2 && greater <= 2 && lower <= 2)) return memory;
+  if ((greater === 3 && lower === 2) || (greater === 2 && lower === 3)) return memory;
+  if (secondaries.filter((value) => value === 0).length >= 3) return 0.5;
+  if (greater >= 3 || lower >= 3) {
+    const counts = new Map<number, number>();
+    for (const value of secondaries) counts.set(value, (counts.get(value) ?? 0) + 1);
+    const maximum = Math.max(...counts.values());
+    return closest([...counts].filter(([, count]) => count === maximum).map(([value]) => value), memory);
+  }
+  return closest([...new Set(secondaries)], memory);
+}
 
 function resultFromCutoffs(
   totalScore: number,
@@ -121,24 +159,38 @@ export function calculateScore(
   }
 
   if (config.scoring.scoringType === "CDR") {
+    const domainScores = CDR_DOMAIN_CODES.map((code) => {
+      const answer = byItem.get(code)!;
+      const item = config.items.find((candidate) => candidate.code === code)!;
+      const option = item.options.find((candidate) => candidate.code === answer.optionCode)!;
+      return option.score;
+    });
+    const globalScore = globalCdr(domainScores[0], domainScores.slice(1));
+    const sumOfBoxes = Math.round(domainScores.reduce((sum, value) => sum + value, 0) * 10) / 10;
     return {
-      totalScore: null,
+      totalScore: globalScore,
       maximumScore: config.scoring.scoreMax,
-      resultLabel: null,
-      isAbnormal: null,
-      scoringStatus: "pending_task1_engine",
-      scoringMethod: config.scoring.algorithmSource,
-      warning: "CDR requires the task-1 clinical scoring engine; answers were saved without a derived score.",
+      resultLabel: CDR_LABELS[String(globalScore)] ?? `CDR=${globalScore}`,
+      isAbnormal: globalScore > 0,
+      scoringStatus: "calculated",
+      scoringMethod: `task1-engine:${config.scoring.algorithmSource}`,
+      warning: null,
+      subScores: Object.fromEntries(CDR_DOMAIN_CODES.map((code, index) => [code, domainScores[index]])),
+      cutoffGroup: String(globalScore),
+      cutoffValue: globalScore,
+      extra: { cdrGlobal: globalScore, cdrSumOfBoxes: sumOfBoxes },
     };
   }
 
   let totalScore = 0;
+  const subScores: Record<string, number> = {};
   for (const answer of answers) {
     const item = config.items.find((candidate) => candidate.code === answer.itemCode)!;
     if (answer.answerStatus && answer.answerStatus !== "answered") continue;
     const option = item.options.find((candidate) => candidate.code === answer.optionCode);
     if (!option) continue;
     totalScore += option.score;
+    if (item.domain) subScores[item.domain] = (subScores[item.domain] ?? 0) + option.score;
   }
   const roundedScore = Math.round(totalScore * 100) / 100;
   return {
@@ -148,5 +200,6 @@ export function calculateScore(
     scoringStatus: "calculated",
     scoringMethod: `task1-config:${config.scoring.algorithmSource}`,
     warning: null,
+    subScores,
   };
 }

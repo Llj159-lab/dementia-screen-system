@@ -273,7 +273,6 @@ export function requirePermission(user: AuthUser, permission: PermissionCode): v
     throw new AuthError(403, 40301, `permission denied: ${permission}`);
   }
 }
-
 export function getAuthStatus() {
   const localStatus = process.env.DATA_DRIVER === "cloudbase" ? {} : localUserStore.getStatus();
   return {

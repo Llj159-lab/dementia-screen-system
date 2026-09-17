@@ -195,6 +195,11 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
         withTimeout(getDatabaseStatus(), HEALTH_DB_TIMEOUT_MS, dbFallback),
         withTimeout(Promise.resolve(fileStore.getStatus()), HEALTH_DB_TIMEOUT_MS, storageFallback),
       ]);
+      const businessStore = await withTimeout(
+        getBusinessStoreStatus(),
+        HEALTH_DB_TIMEOUT_MS,
+        { status: "timeout", error: `check exceeded ${HEALTH_DB_TIMEOUT_MS}ms` },
+      );
       sendJson(
         response,
         200,
@@ -208,7 +213,7 @@ async function handleRequest(request: IncomingMessage, response: ServerResponse)
             environment: process.env.NODE_ENV ?? "development",
             startedAt: startedAt.toISOString(),
             uptimeSeconds: Math.floor(process.uptime()),
-            dependencies: { database, businessStore: getBusinessStoreStatus(), objectStorage },
+            dependencies: { database, businessStore, objectStorage },
             authentication: getAuthStatus(),
           },
         },

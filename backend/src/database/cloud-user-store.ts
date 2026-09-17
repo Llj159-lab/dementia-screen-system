@@ -16,6 +16,22 @@ function mapUser(row: UserRow): StoredUser {
     createdAt: row.created_at, updatedAt: row.updated_at };
 }
 
+function toRow(user: StoredUser): UserRow {
+  return {
+    user_id: user.userId,
+    auth_provider: user.authProvider,
+    username: user.username,
+    password_hash: user.passwordHash,
+    open_id: user.openId,
+    display_name: user.displayName,
+    role_codes: [...user.roleCodes],
+    status: user.status,
+    last_login_at: user.lastLoginAt,
+    created_at: user.createdAt,
+    updated_at: user.updatedAt,
+  };
+}
+
 async function one(column: "username" | "user_id", value: string): Promise<StoredUser | undefined> {
   const { data, error } = await getRdbClient().from<UserRow>("users").select("*").eq(column, value).limit(1).maybeSingle();
   if (error) throw new Error(`CloudBase users query failed: ${error.message ?? "unknown error"}`);
@@ -31,27 +47,17 @@ export class CloudUserStore {
     return (data ?? []).map(mapUser);
   }
   async create(user: StoredUser): Promise<StoredUser> {
-    const row = {
-      user_id: user.userId, auth_provider: user.authProvider, username: user.username,
-      password_hash: user.passwordHash, open_id: user.openId, display_name: user.displayName,
-      role_codes: user.roleCodes, status: user.status, last_login_at: user.lastLoginAt,
-      created_at: user.createdAt, updated_at: user.updatedAt,
-    };
-    const { error } = await getRdbClient().from("users").insert(row);
+    const { error } = await getRdbClient().from("users").insert(toRow(user));
     if (error) throw new Error(`CloudBase users insert failed: ${error.message ?? "unknown error"}`);
     return user;
   }
-  async update(userId: string, changes: Partial<Pick<StoredUser, "displayName" | "passwordHash" | "roleCodes" | "status">>): Promise<StoredUser | undefined> {
+  async update(userId: string, changes: Partial<StoredUser>): Promise<StoredUser | undefined> {
     const current = await this.findByUserId(userId);
     if (!current) return undefined;
-    const row: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (changes.displayName !== undefined) row.display_name = changes.displayName;
-    if (changes.passwordHash !== undefined) row.password_hash = changes.passwordHash;
-    if (changes.roleCodes !== undefined) row.role_codes = changes.roleCodes;
-    if (changes.status !== undefined) row.status = changes.status;
-    const { error } = await getRdbClient().from("users").update(row).eq("user_id", userId);
+    const updated: StoredUser = { ...current, ...changes, userId, updatedAt: new Date().toISOString() };
+    const { error } = await getRdbClient().from("users").update(toRow(updated)).eq("user_id", userId);
     if (error) throw new Error(`CloudBase users update failed: ${error.message ?? "unknown error"}`);
-    return { ...current, ...changes, updatedAt: row.updated_at as string };
+    return updated;
   }
   async updateLastLogin(userId: string, lastLoginAt: string): Promise<void> {
     const { error } = await getRdbClient().from("users").update({ last_login_at: lastLoginAt, updated_at: lastLoginAt }).eq("user_id", userId);
