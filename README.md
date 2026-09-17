@@ -30,9 +30,9 @@
 | 任务6 | UI 原型、量表素材和设计资源 |
 | 任务7 | 测试、项目文档和结题材料 |
 
-项目统一成果汇总在 `integration/all-tasks` 分支。
+完整项目代码和运行文件统一汇总在 [`integration/all-tasks`](https://github.com/Llj159-lab/dementia-screen-system/tree/integration/all-tasks) 分支；`main` 分支用于展示项目首页说明。
 
-## 目录结构
+## 整合分支目录结构
 
 ```text
 .
@@ -62,13 +62,14 @@
 
 ## 快速入口
 
-- [后端说明](backend/README.md)
-- [Web 管理后台说明](web-admin/README.md)
-- [微信小程序说明](mini-program/README.md)
-- [评分引擎说明](ts/README.md)
-- [后端接口文档](backend/docs/api.md)
-- [云端部署说明](backend/docs/cloud-integration.md)
-- [文档可读性审计](docs/document-readability-audit.md)
+- [整合分支](https://github.com/Llj159-lab/dementia-screen-system/tree/integration/all-tasks)
+- [后端说明](https://github.com/Llj159-lab/dementia-screen-system/blob/integration/all-tasks/backend/README.md)
+- [Web 管理后台说明](https://github.com/Llj159-lab/dementia-screen-system/blob/integration/all-tasks/web-admin/README.md)
+- [微信小程序说明](https://github.com/Llj159-lab/dementia-screen-system/blob/integration/all-tasks/mini-program/README.md)
+- [评分引擎说明](https://github.com/Llj159-lab/dementia-screen-system/blob/integration/all-tasks/ts/README.md)
+- [后端接口文档](https://github.com/Llj159-lab/dementia-screen-system/blob/integration/all-tasks/backend/docs/api.md)
+- [云端部署说明](https://github.com/Llj159-lab/dementia-screen-system/blob/integration/all-tasks/backend/docs/cloud-integration.md)
+- [文档可读性审计](https://github.com/Llj159-lab/dementia-screen-system/blob/integration/all-tasks/docs/document-readability-audit.md)
 
 ## 本地运行
 
@@ -93,7 +94,7 @@ npm run build
 npm run dev
 ```
 
-小程序使用微信开发者工具导入 `mini-program` 目录运行。各模块的详细配置和部署说明见对应目录下的 README。
+小程序使用微信开发者工具导入整合分支中的 `mini-program` 目录运行。各模块的详细配置和部署说明见整合分支对应目录下的 README。
 
 ## 安全说明
 
