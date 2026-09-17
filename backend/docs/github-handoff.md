@@ -1,8 +1,10 @@
 # GitHub 提交与团队交接
 
+更新时间：2026-09-17
+
 ## 提交范围
 
-本目录是任务包 2 的后端交付物，建议作为团队仓库中的：
+本目录是任务包 2 的后端交付物，已经纳入团队仓库 `integration/all-tasks` 整合分支：
 
 ```text
 backend/
@@ -32,6 +34,8 @@ backend/
 - 真实患者资料和包含隐私的测试文件
 
 ## 推荐 Git 流程
+
+任务2独立分支为 `task2-backend` 和 `task2-cloud-integration`；全项目整合分支为 `integration/all-tasks`。后续如果只修改任务2后端，请先从最新整合分支切出工作分支，避免覆盖任务1、任务3、任务4、任务5、任务6、任务7已经合并的内容。
 
 在 `C:\Users\Lenovo\Desktop\gpt` 的 PowerShell 中执行：
 
@@ -83,11 +87,11 @@ git push -u origin task2-backend
 
 提交或 Pull Request 创建后，把链接和下面这段话发到群里：
 
-> 我已提交任务包 2 后端基础服务，分支为 `task2-backend`。内容包括 PostgreSQL 建表与验证 SQL、Web 登录与 Bearer Token 鉴权、RBAC、统一响应格式、文件上传/列表/元数据/下载接口、OpenAPI 文档和 CloudBase 健康检查函数脚手架。腾讯云环境 `ad-scd-dev-d1g1y08v5962945fd` 已创建 PostgreSQL 七张表、私有桶 `ad-scd-files` 和 `storage.objects` 的 authenticated 读取/上传策略。当前仍明确标记为待完成的是云函数实际部署、Node 后端真实连接云数据库/云存储和小程序真实登录。请任务包 1 提供最终量表配置，任务包 3 对接业务接口，任务包 4/5 联调登录和文件接口，任务包 7 按 `backend/docs/openapi.yaml` 做测试。
+> 我已完成任务包 2 后端与云端支持，并已合入 `integration/all-tasks`。当前内容包括 PostgreSQL 建表与迁移 SQL、CloudBase RDB/私有云存储适配器、Web 登录与 Bearer Token 鉴权、RBAC、统一响应格式、文件上传/列表/元数据/下载接口、业务接口、OpenAPI 文档和部署说明。腾讯云环境 `ad-scd-dev-d1g1y08v5962945fd`、私有桶 `ad-scd-files` 和云托管后端地址已配置；任务4/5可按 `https://adscdbackend-311006-10-1479821149.sh.run.tcloudbase.com/api/v1` 作为统一接口地址，测试同学按 `backend/docs/openapi.yaml` 做验收记录。账号密码、JWT、云密钥和患者隐私信息不放到 GitHub 或群聊。
 
 ## 给不同同学的信息
 
 - 任务包 1：量表编码、题目/选项/评分规则、来源页码；
 - 任务包 3：数据库表名、鉴权方式、文件接口、统一响应结构；
-- 任务包 4/5：登录接口、Bearer Token、文件接口和当前本地/云端边界；
+- 任务包 4/5：云端后端地址、登录接口、Bearer Token、文件接口和 CORS 来源；
 - 任务包 7：OpenAPI 文档、测试账号、错误码和验收截图。

@@ -1,8 +1,8 @@
-# Task 3 Business API
+# 任务包 3：业务接口说明
 
-This document is the handoff contract for the Web administration frontend and the mini-program frontend. All JSON endpoints use the common response envelope documented in `api.md` and require `Authorization: Bearer <token>` unless stated otherwise.
+本文是 Web 管理后台和微信小程序端的接口交接契约。除特别说明外，所有 JSON 接口都使用 `api.md` 中的统一响应结构，并需要请求头 `Authorization: Bearer <token>`。
 
-## Run and verify
+## 运行与验证
 
 ```text
 npm ci
@@ -12,37 +12,37 @@ npm test
 npm start
 ```
 
-Local development persists business demo data in `data/business.json` and user data in `data/users.json`. Set `LOCAL_DATA_DIR` to move these files. In the CloudBase deployment, authentication and file metadata use the CloudBase PostgreSQL and object-storage adapters; the business demo store remains a replaceable local adapter for this coursework integration.
+本地开发模式下，业务演示数据保存到 `data/business.json`，用户数据保存到 `data/users.json`。可通过 `LOCAL_DATA_DIR` 修改保存位置。CloudBase 部署模式下，鉴权、业务数据、文件元数据和对象存储均使用云端适配器。
 
-## Endpoint summary
+## 接口汇总
 
-| Module | Method and path | Permission | Purpose |
+| 模块 | 方法和路径 | 权限 | 用途 |
 | --- | --- | --- | --- |
-| Scale | `GET /api/v1/scales` | `scale:read` | List the six task-1 scale configurations |
-| Scale | `GET /api/v1/scales/{scaleCode}` | `scale:read` | Get questions, options and scoring metadata |
-| Patient | `GET /api/v1/patients` | `patient:read` | Paginated multi-condition search |
-| Patient | `POST /api/v1/patients` | `patient:create` | Create a patient |
-| Patient | `GET /api/v1/patients/{patientId}` | `patient:read` | Patient details |
-| Patient | `PUT/PATCH /api/v1/patients/{patientId}` | `patient:update` | Update a patient |
-| Patient | `DELETE /api/v1/patients/{patientId}` | `patient:delete` | Delete a patient with no assessments |
-| Assessment | `POST /api/v1/assessments` | `assessment:create` | Save answers and submit an assessment |
-| Assessment | `GET /api/v1/assessments` | `assessment:read` | Paginated assessment search |
-| Assessment | `GET /api/v1/assessments/{assessmentId}` | `assessment:read` | Assessment, answers and patient details |
-| Statistics | `GET /api/v1/statistics/overview` | `assessment:read` | Dashboard totals and abnormal ratio |
-| Statistics | `GET /api/v1/statistics/score-distribution` | `assessment:read` | ECharts-ready score/count array |
-| Report | `GET /api/v1/reports/assessments/{assessmentId}.pdf` | `report:export` | Single PDF report |
-| Report | `GET /api/v1/reports/assessments.xls` | `report:export` | Filtered Excel-compatible batch export |
-| Account | `GET /api/v1/system/accounts` | `system:admin` | Account list without password hashes |
-| Account | `POST /api/v1/system/accounts` | `system:admin` | Create a Web account |
-| Account | `PATCH /api/v1/system/accounts/{userId}` | `system:admin` | Update display name, roles or status |
-| Account | `PUT /api/v1/system/password` | authenticated | Change the current user's password |
-| Audit | `GET /api/v1/system/operation-logs` | `operation_log:read` | Search operation logs |
+| 量表 | `GET /api/v1/scales` | `scale:read` | 获取任务1六大量表配置列表 |
+| 量表 | `GET /api/v1/scales/{scaleCode}` | `scale:read` | 获取题目、选项和评分元数据 |
+| 患者 | `GET /api/v1/patients` | `patient:read` | 分页多条件查询 |
+| 患者 | `POST /api/v1/patients` | `patient:create` | 新建患者 |
+| 患者 | `GET /api/v1/patients/{patientId}` | `patient:read` | 患者详情 |
+| 患者 | `PUT/PATCH /api/v1/patients/{patientId}` | `patient:update` | 更新患者 |
+| 患者 | `DELETE /api/v1/patients/{patientId}` | `patient:delete` | 删除无测评记录的患者 |
+| 测评 | `POST /api/v1/assessments` | `assessment:create` | 保存答案并提交测评 |
+| 测评 | `GET /api/v1/assessments` | `assessment:read` | 分页查询测评记录 |
+| 测评 | `GET /api/v1/assessments/{assessmentId}` | `assessment:read` | 测评、答案和患者详情 |
+| 统计 | `GET /api/v1/statistics/overview` | `assessment:read` | 看板汇总和异常比例 |
+| 统计 | `GET /api/v1/statistics/score-distribution` | `assessment:read` | ECharts 可用的得分分布数组 |
+| 报告 | `GET /api/v1/reports/assessments/{assessmentId}.pdf` | `report:export` | 单份 PDF 报告 |
+| 报告 | `GET /api/v1/reports/assessments.xls` | `report:export` | 按筛选条件批量导出 Excel 兼容文件 |
+| 账号 | `GET /api/v1/system/accounts` | `system:admin` | 查询账号列表，不返回密码哈希 |
+| 账号 | `POST /api/v1/system/accounts` | `system:admin` | 新建 Web 账号 |
+| 账号 | `PATCH /api/v1/system/accounts/{userId}` | `system:admin` | 更新显示名、角色或状态 |
+| 账号 | `PUT /api/v1/system/password` | 已登录 | 修改当前用户密码 |
+| 审计 | `GET /api/v1/system/operation-logs` | `operation_log:read` | 查询操作日志 |
 
-## Patients
+## 患者接口
 
-List query parameters: `page`, `pageSize` (maximum 200), `keyword` (matches patient code or name), `gender`, and `status`.
+列表查询参数包括 `page`、`pageSize`（最大 200）、`keyword`（匹配患者编号或姓名）、`gender` 和 `status`。
 
-Create example:
+新建示例：
 
 ```json
 {
@@ -60,11 +60,11 @@ Create example:
 }
 ```
 
-Do not send plaintext identity-card or phone values in the ciphertext fields. Production encryption belongs in the task-2 database adapter. Deletion is rejected when assessment records refer to a patient; update `status` to `archived` instead.
+不要把身份证号或手机号明文放入密文字段。生产级加密属于任务2数据库适配器后续增强范围。患者已存在测评记录时不允许删除，可改为把 `status` 更新为 `archived`。
 
-## Assessments and scoring boundary
+## 测评与评分边界
 
-Create/submit example:
+新建或提交示例：
 
 ```json
 {
@@ -85,15 +85,15 @@ Create/submit example:
 }
 ```
 
-For `submitted` records, required items and option codes are validated against `fixtures/task1-scale-configs.json`. `SUM` and `ITEMIZED` configurations are calculated only from option scores supplied by task 1; education-dependent cutoffs also use task-1 metadata. No clinical thresholds are invented here.
+`submitted` 记录会按 `fixtures/task1-scale-configs.json` 校验必答题和选项编码。`SUM` 和 `ITEMIZED` 量表只使用任务1提供的选项分值计算；教育年限相关界值也使用任务1元数据。后端不自行编造临床阈值。
 
-CDR uses the task-1 Morris (1993) algorithm with memory as the primary domain and the other five domains as secondary domains. The response includes the global CDR in `totalScore`, domain scores in `subScores`, and CDR-SB in `extra.cdrSumOfBoxes`. All six scales now return `scoringStatus: calculated` for valid submitted answers.
+CDR 使用任务1 Morris (1993) 算法，以记忆为主域，其余五项为次域。响应中 `totalScore` 为整体 CDR，`subScores` 为功能域分数，`extra.cdrSumOfBoxes` 为 CDR-SB。六个量表在合法作答提交后均返回 `scoringStatus: calculated`。
 
-Assessment list query parameters: `page`, `pageSize`, `patientId`, `scaleCode`, `status`, `from`, and `to`. Dates are ISO 8601 strings.
+测评列表查询参数包括 `page`、`pageSize`、`patientId`、`scaleCode`、`status`、`from` 和 `to`。日期使用 ISO 8601 字符串。
 
-## Statistics
+## 统计接口
 
-`GET /statistics/overview` returns:
+`GET /statistics/overview` 返回：
 
 ```json
 {
@@ -107,21 +107,21 @@ Assessment list query parameters: `page`, `pageSize`, `patientId`, `scaleCode`, 
 }
 ```
 
-The abnormal ratio denominator contains only assessments whose task-1 configuration produced a non-null abnormal result. Pending CDR results therefore do not distort the dashboard.
+异常比例的分母只包含任务1配置能产生非空异常判定的测评记录。
 
-`GET /statistics/score-distribution?scaleCode=MMSE` returns `distribution: [{ "score": 18, "count": 2 }]` sorted by score.
+`GET /statistics/score-distribution?scaleCode=MMSE` 返回按分数排序的 `distribution: [{ "score": 18, "count": 2 }]`。
 
-## Reports
+## 报告导出
 
-PDF output is generated without an external service and uses the PDF standard Chinese font name `STSong-Light`. The report contains a screening-only disclaimer.
+PDF 输出不依赖外部服务，使用 PDF 标准中文字体名 `STSong-Light`，报告中包含“仅用于筛查、不替代临床诊断”的说明。
 
-The batch endpoint returns SpreadsheetML with the `.xls` extension and `application/vnd.ms-excel`; it opens directly in Microsoft Excel and preserves Chinese text. It accepts the same filtering parameters as the assessment list. If the final acceptance rubric strictly requires `.xlsx`, replace `createAssessmentsExcel` with the team's approved XLSX library after dependencies are agreed.
+批量导出接口返回 `.xls` 扩展名的 SpreadsheetML，MIME 类型为 `application/vnd.ms-excel`，可直接用 Microsoft Excel 打开并保留中文。导出接口接受与测评列表相同的筛选参数。
 
-## Accounts and audit logs
+## 账号和操作日志
 
-Create-account fields are `username`, `password` (minimum eight characters), `displayName`, `roleCodes`, and optional `status`. Allowed roles are `admin`, `researcher`, and `evaluator`. Password hashes never appear in API responses.
+新建账号字段为 `username`、`password`（至少八位）、`displayName`、`roleCodes`，以及可选 `status`。允许角色为 `admin`、`researcher` 和 `evaluator`。API 响应不返回密码哈希。
 
-Password change body:
+修改密码请求体：
 
 ```json
 {
@@ -130,8 +130,8 @@ Password change body:
 }
 ```
 
-All sessions for the user are revoked after a password change. Operation logs are written for patient changes, assessment submission, report exports, account changes, and password changes. Log queries support `page`, `pageSize`, `action`, and `userId`.
+修改密码后，该用户所有会话都会失效。患者变更、测评提交、报告导出、账号变更和密码修改都会写入操作日志。日志查询支持 `page`、`pageSize`、`action` 和 `userId`。
 
-## Integration note
+## 整合说明
 
-The endpoint contract is stable for the Web backend and mini-program. The current coursework deployment uses CloudBase adapters for authentication, PostgreSQL-backed file metadata, and private object storage. `LocalBusinessStore` supplies backend business records in the current coursework version; it can be replaced later without changing the frontend API contract.
+当前接口契约已可供 Web 后台和小程序联调。课程版部署使用 CloudBase 适配器处理鉴权、业务数据、PostgreSQL 文件元数据和私有对象存储；后续若继续扩展，只要保持本接口契约，前端不需要大改。

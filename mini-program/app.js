@@ -2,7 +2,7 @@ const { getStoredSession } = require('./services/auth');
 
 App({
   globalData: {
-    apiBaseUrl: 'http://localhost:3000/api/v1',
+    apiBaseUrl: 'https://adscdbackend-311006-10-1479821149.sh.run.tcloudbase.com/api/v1',
     session: null,
     selectedPatient: null,
     selectedScale: null,

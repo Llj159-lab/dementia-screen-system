@@ -2,7 +2,7 @@ const api = require('../../services/api');
 const { saveSession } = require('../../services/auth');
 
 Page({
-  data: { username: 'researcher_demo', password: 'Researcher123!', loading: false },
+  data: { username: '', password: '', loading: false },
   onUsernameInput(event) { this.setData({ username: event.detail.value }); },
   onPasswordInput(event) { this.setData({ password: event.detail.value }); },
   login() {

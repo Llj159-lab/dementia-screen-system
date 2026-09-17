@@ -1,4 +1,4 @@
-# ad-ouc-scoring-ts —— 6 量表评分引擎（TypeScript 独立包）
+# 六大量表评分引擎（TypeScript 独立包）
 
 任务 2 交付：把已通过 29 条断言的 **Python 评分引擎**（`scoring/`）1:1 移植为
 **零依赖、可被 Node 原生运行的 TypeScript 纯函数包**，供后端

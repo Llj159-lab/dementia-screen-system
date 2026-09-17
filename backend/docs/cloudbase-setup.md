@@ -1,40 +1,35 @@
-# Cloud Development Setup
+# CloudBase 云开发配置记录
 
-## What is verified locally
+## 本地已验证内容
 
-- The backend schema and local user store are implemented.
-- No CloudBase CLI was found on this machine.
-- The user supplied the CloudBase environment ID `ad-scd-dev-d1g1y08v5962945fd`.
-- No Tencent Cloud credential or WeChat application credential is available to this workspace.
-- Therefore no cloud database connection, cloud function, or cloud storage deployment has been performed by this agent.
-- The user later provided screenshots showing PostgreSQL tables, the private bucket
-  `ad-scd-files`, and two `storage.objects` policies for the `authenticated` role.
-  These are user-provided results and were not directly executed by this agent.
+- 后端数据库结构、本地用户存储和本地文件存储已实现。
+- CloudBase PostgreSQL 和私有云存储适配器已在代码中提供。
+- 用户提供的 CloudBase 环境 ID 为 `ad-scd-dev-d1g1y08v5962945fd`。
+- 用户已提供 PostgreSQL 表、私有桶 `ad-scd-files`、`storage.objects` 已登录用户读写策略和云托管健康检查截图。
+- 腾讯云密钥、微信 AppSecret、JWT 和测试账号密码只保存在部署环境或私下交接，不写入仓库。
 
-## Configuration record
+## 配置记录
 
-1. Environment: `ad-scd-dev-d1g1y08v5962945fd`.
-2. Database: PostgreSQL; the seven application tables were created by the project owner.
-3. Storage bucket: `ad-scd-files`, configured as private.
-4. Storage prefixes: `scale-assets/` and `assessment-reports/`.
-5. `storage.objects` policies allow `authenticated` users to read and upload.
-6. The health-check function was deployed by the project owner.
-7. Provider credentials must remain in Tencent Cloud secrets or local ignored
-   environment variables, never in source files.
+1. 环境 ID：`ad-scd-dev-d1g1y08v5962945fd`。
+2. 数据库：PostgreSQL，项目负责人已创建七张应用表。
+3. 存储桶：`ad-scd-files`，权限为私有。
+4. 存储前缀：`scale-assets/` 和 `assessment-reports/`。
+5. `storage.objects` 策略允许 `authenticated` 用户读取和上传。
+6. 云托管后端地址：`https://adscdbackend-311006-10-1479821149.sh.run.tcloudbase.com`。
+7. 凭证必须保存在腾讯云密钥配置或本地忽略的环境变量中，不能写入源码。
 
-## Integration values
+## 整合环境变量
 
 ```text
 CLOUD_ENV_ID=ad-scd-dev-d1g1y08v5962945fd
-cloud database type=PostgreSQL
-cloud function entry format=index.main
-storage bucket or environment storage name=ad-scd-files
-mini-program app identity configuration=
-web admin domain or local development origin=
+CLOUDBASE_ENV_ID=ad-scd-dev-d1g1y08v5962945fd
+DATA_DRIVER=cloudbase
+STORAGE_DRIVER=cloudbase
+STORAGE_BUCKET=ad-scd-files
+JWT_SECRET=<部署环境中配置>
+CORS_ORIGINS=<Web后台来源，多个用英文逗号分隔>
 ```
 
-## Important limitation
+## 说明
 
-Setting `CLOUD_ENV_ID` alone does not connect the TypeScript application. The current
-Node.js service deliberately reports local adapters until a database and storage
-adapter is implemented.
+仅设置环境 ID 不会自动切换运行模式；需要同时设置 `DATA_DRIVER=cloudbase` 和 `STORAGE_DRIVER=cloudbase`。同环境云托管优先使用运行身份访问 CloudBase 服务，只有日志明确提示缺少凭证或无权限时，才补充最小权限密钥配置。

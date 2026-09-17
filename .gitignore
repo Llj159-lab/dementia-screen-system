@@ -142,6 +142,8 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+.npm-cache/
 *.zip
 __pycache__/
 *.pyc
+mini-program/project.private.config.json

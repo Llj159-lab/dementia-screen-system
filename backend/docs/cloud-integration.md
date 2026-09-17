@@ -1,37 +1,31 @@
-# Task 2 Cloud Integration
+# 任务包 2：CloudBase 云端接入说明
 
-## Runtime modes
+## 运行模式
 
-Local development is the default. Cloud mode must be enabled explicitly:
+默认使用本地开发模式。部署到 CloudBase 时，需要显式开启云端模式：
 
 ```env
 DATA_DRIVER=cloudbase
 STORAGE_DRIVER=cloudbase
 CLOUDBASE_ENV_ID=ad-scd-dev-d1g1y08v5962945fd
 STORAGE_BUCKET=ad-scd-files
-JWT_SECRET=<a-long-random-secret>
+JWT_SECRET=<部署环境中的长随机密钥>
 CORS_ORIGINS=http://localhost:5173
 ```
 
-In cloud mode, users, patients, assessment records and answers, operation logs,
-file metadata, and binary file content use the task-2 CloudBase services. Run
-`sql/005_add_answer_option_code.sql` once for databases created from an earlier schema.
+云端模式下，用户、患者、测评记录、答案、操作日志、文件元数据和文件二进制内容使用任务2 CloudBase 服务。若数据库是早期结构创建的，需要先执行一次 `sql/005_add_answer_option_code.sql`。
 
-CloudBase credentials are optional. In same-environment CloudBase hosting, first use
-the workload identity without long-lived CAM keys. Only set
-`CLOUDBASE_SECRETID` and `CLOUDBASE_SECRETKEY` when deployment logs explicitly
-show that credentials are required. Never commit their values.
+CloudBase 密钥是可选项。同环境云托管优先使用运行身份，不创建长期 CAM 密钥。只有部署日志明确提示缺少凭证或无权限时，才考虑配置 `CLOUDBASE_SECRETID` 和 `CLOUDBASE_SECRETKEY`。这些值绝不能提交到 Git。
 
-## Test users
+## 测试账号
 
-Generate a password hash locally:
+本地生成密码哈希：
 
 ```text
 npm run auth:hash -- <password>
 ```
 
-Insert two course-assignment users in CloudBase SQL Editor. Replace only the hash
-placeholders; do not store plaintext passwords.
+在 CloudBase SQL 编辑器中插入课程测试账号。只替换哈希占位符，不保存明文密码。
 
 ```sql
 INSERT INTO users (user_id, auth_provider, username, password_hash, display_name, role_codes, status)
@@ -45,37 +39,28 @@ ON CONFLICT (username) DO UPDATE SET
   updated_at = NOW();
 ```
 
-Share passwords privately with task 3 and task 5 owners. Do not put passwords in
-Git, screenshots, issue comments, or group chat.
+密码只私下发给任务3、任务5和测试同学，不放入 Git、截图、Issue 或群聊。
 
-## CloudBase hosting
+## 云托管部署
 
-Deploy the `backend` directory as one Node.js service using Node 20 or later:
+将 `backend` 目录部署为一个 Node.js 服务，Node 版本使用 20 或更高：
 
 ```text
-Install command: npm ci
-Start command: npm start
-Container port: 3000
+安装命令：npm ci
+启动命令：npm start
+容器端口：3000
 ```
 
-Configure the environment variables shown above in the service settings. Set
-`CORS_ORIGINS` to the task 5 development and deployed origins, comma-separated.
-Do not use `*`.
+在服务设置中配置上面的环境变量。`CORS_ORIGINS` 填任务5开发地址和部署地址，多个来源用英文逗号分隔，不使用 `*`。
 
-## Acceptance checks
+## 验收检查
 
-1. `GET /api/v1/health` reports `cloudbase_rdb/connected` and
-   `cloudbase/connected`.
-2. `POST /api/v1/auth/web/login` works for both test users.
-3. `GET /api/v1/auth/me` accepts the returned JWT; an invalid token returns 401.
-4. Upload a non-sensitive PDF through `POST /api/v1/files` and verify its metadata
-   appears in PostgreSQL `files`.
-5. Verify the uploaded object appears under `scale-assets/` or
-   `assessment-reports/` in the intended private bucket. The SDK selects storage
-   through the CloudBase environment and does not accept a bucket argument.
-6. Download the object through `GET /api/v1/files/:fileId/download`.
-7. Verify allowed origins receive `Access-Control-Allow-Origin`; other origins do
-   not.
+1. `GET /api/v1/health` 返回数据库和存储 `connected`。
+2. `POST /api/v1/auth/web/login` 可使用课程测试账号登录。
+3. `GET /api/v1/auth/me` 能识别返回的 Token，错误 Token 返回 401。
+4. 通过 `POST /api/v1/files` 上传不含隐私的 PDF 或图片，并确认 PostgreSQL `files` 中出现元数据。
+5. 在私有桶中确认文件位于 `scale-assets/` 或 `assessment-reports/` 前缀下。
+6. 通过 `GET /api/v1/files/:fileId/download` 下载文件。
+7. 允许来源能收到 `Access-Control-Allow-Origin`，未配置来源不能跨域访问。
 
-The backend URL is only complete after the CloudBase service is deployed and its
-public access URL is recorded.
+当前课程版云托管后端地址：`https://adscdbackend-311006-10-1479821149.sh.run.tcloudbase.com`。

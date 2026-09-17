@@ -7,7 +7,7 @@ import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter(); const route = useRoute(); const auth = useAuthStore();
 const formRef = ref<FormInstance>(); const loading = ref(false);
-const form = reactive({ username: "admin_demo", password: "Admin123!", remember: true });
+const form = reactive({ username: "", password: "", remember: true });
 const rules: FormRules = { username: [{ required: true, message: "请输入用户名", trigger: "blur" }], password: [{ required: true, message: "请输入密码", trigger: "blur" }] };
 async function submit() {
   if (!await formRef.value?.validate()) return;
@@ -32,7 +32,6 @@ async function submit() {
         <div class="login-options"><el-checkbox v-model="form.remember">记住账号</el-checkbox><span>如需重置密码，请联系管理员</span></div>
         <el-button type="primary" :loading="loading" class="login-button" @click="submit">登录系统</el-button>
       </el-form>
-      <div class="demo-tip"><b>演示账号</b><span>admin_demo / Admin123!</span></div>
     </div><footer>© 2026 认知筛查评估系统 · 仅供医疗筛查与科研使用</footer></section>
   </div>
 </template>

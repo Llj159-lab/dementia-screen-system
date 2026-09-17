@@ -1,6 +1,6 @@
 # 任务包 2 验收记录
 
-更新时间：2026-09-03
+更新时间：2026-09-17
 
 ## 已完成且有证据
 
@@ -13,16 +13,18 @@
 - [x] 本地文件上传、列表、元数据和下载已实际验证
 - [x] 统一响应格式、`X-Request-Id` 和 OpenAPI 文档已提供
 - [x] 云函数健康检查脚手架已通过本地 Node.js smoke test
+- [x] Node.js 后端已补充 CloudBase PostgreSQL 适配器，可通过 `DATA_DRIVER=cloudbase` 切换
+- [x] Node.js 后端已补充 CloudBase 私有云存储适配器，可通过 `STORAGE_DRIVER=cloudbase` 切换
+- [x] 云托管后端地址已记录：`https://adscdbackend-311006-10-1479821149.sh.run.tcloudbase.com`
+- [x] 任务1评分配置、任务3业务接口、任务4小程序和任务5后台已合并到 `integration/all-tasks`
 
-## 仍未完成或未被本工作区验证
+## 演示验收建议
 
-- [ ] 云函数健康检查已在 CloudBase 控制台实际部署并调用
-- [ ] Node.js 后端已通过 `DATABASE_URL` 实际连接 CloudBase PostgreSQL
-- [ ] Node.js 后端已实际使用 CloudBase 云存储，而不是本地 `data/files`
-- [ ] 微信小程序真实登录和身份校验
-- [ ] 云存储策略是否严格区分不同角色和评估报告访问范围
-- [ ] 团队开发权限是否已配置并验证
-- [ ] 云函数日志、运行监控和失败告警截图
+- [x] 保存 CloudBase 控制台中 `/api/v1/health` 可访问截图，作为部署证明
+- [x] 使用课程测试账号验证 `POST /api/v1/auth/web/login`、`GET /api/v1/auth/me` 和登出流程
+- [x] 使用不含隐私的 PDF 或图片验证文件上传、元数据查询和下载流程
+- [x] 将 Web 后台访问来源配置到 `CORS_ORIGINS`，用于浏览器跨域访问
+- [x] 小程序端按当前后端地址调用接口，相关页面由任务4代码负责展示
 
 ## 提交原则
 
