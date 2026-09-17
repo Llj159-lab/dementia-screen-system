@@ -1,0 +1,20 @@
+<view class="page safe-bottom">
+  <view class="topbar">
+    <view class="back-button" bindtap="back">‹</view>
+    <text class="page-title">认知测评</text>
+    <text class="help">?</text>
+  </view>
+  <view wx:if="{{selectedPatient}}" class="patient-banner card">
+    <view class="avatar">{{selectedPatient.initial}}</view>
+    <view>
+      <view class="patient-name">{{selectedPatient.name}}</view>
+      <view class="patient-meta">性别：{{selectedPatient.genderLabel || '未填写'}}　年龄：{{selectedPatient.ageLabel || '未填写'}}</view>
+    </view>
+  </view>
+  <view wx:else class="notice card" bindtap="choosePatient">请先在患者页选择一位患者</view>
+  <view class="scale-grid">
+    <view wx:for="{{scales}}" wx:key="scaleCode" class="scale-card card" bindtap="openScale" data-code="{{item.scaleCode}}" style="border-top-color: {{colors[index % colors.length]}}"><view class="scale-icon">{{item.scaleCode}}</view><view class="scale-name">{{item.name}}</view><view class="scale-meta">{{item.itemCount}} 题 · {{item.scoring.scoreMax}} 分</view></view>
+  </view>
+  <button class="all-assessment-button" bindtap="startAllAssessments">开始全套测评</button>
+  <button class="history-report-button" bindtap="viewReports">查看以往测评报告</button>
+</view>

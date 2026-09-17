@@ -1,0 +1,12 @@
+.page { min-height: 100vh; padding-bottom: 40rpx; box-sizing: border-box; }
+.report-header { position: relative; display: flex; align-items: center; justify-content: center; height: 92rpx; margin-bottom: 20rpx; }
+.page-title { color: #07164f; font-size: 42rpx; font-weight: 700; }
+.back-button { position: absolute; left: 0; color: #454b56; font-size: 68rpx; line-height: 1; }
+.report-row { display: flex; flex-direction: column; margin-bottom: 16rpx; padding: 20rpx 20rpx 18rpx; border-radius: 22rpx; box-sizing: border-box; }
+.report-top { display: flex; align-items: flex-start; justify-content: space-between; }
+.report-code { flex: 1; min-width: 0; color: #07164f; font-size: 32rpx; font-weight: 700; word-break: break-all; }
+.report-result { flex-shrink: 0; margin-left: 16rpx; color: #1769e0; font-size: 28rpx; font-weight: 700; }
+.report-date { width: 100%; margin-top: 10rpx; color: #78818e; font-size: 22rpx; line-height: 1.4; word-break: break-all; white-space: normal; text-align: left; }
+.report-actions { display: flex; width: 100%; gap: 14rpx; margin-top: 18rpx; }
+.report-actions button { flex: 1; margin: 0; padding: 0; border: 2rpx solid #1769e0; border-radius: 999rpx; background: #fff; color: #1769e0; font-size: 28rpx; line-height: 72rpx; }
+.empty { margin-top: 40rpx; padding: 40rpx 20rpx; text-align: center; }

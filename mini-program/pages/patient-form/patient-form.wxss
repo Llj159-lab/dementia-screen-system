@@ -1,0 +1,107 @@
+.form-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 96rpx;
+  padding: 24rpx 0 32rpx;
+  color: #1769e0;
+}
+
+.form-header .page-title {
+  color: #07164f;
+  font-size: 50rpx;
+  font-weight: 700;
+}
+
+.back-button,
+.save-label {
+  position: absolute;
+  top: 30rpx;
+}
+
+.back-button {
+  left: 0;
+  color: #454b56;
+  font-size: 74rpx;
+  font-weight: 300;
+  line-height: 66rpx;
+}
+
+.save-label {
+  right: 0;
+  padding-top: 20rpx;
+  color: #16244d;
+  font-size: 30rpx;
+}
+
+.form-card {
+  padding: 12rpx 32rpx 36rpx;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  min-height: 112rpx;
+  border-bottom: 2rpx solid #eef0f3;
+}
+
+.field > text {
+  width: 210rpx;
+  flex-shrink: 0;
+  color: #16244d;
+  font-size: 30rpx;
+}
+
+.field input,
+.picker-value {
+  flex: 1;
+  color: #273043;
+  font-size: 29rpx;
+}
+
+.picker-value {
+  padding: 24rpx 0;
+}
+
+.field-column {
+  display: block;
+  padding: 26rpx 0;
+}
+
+.field-column > text {
+  display: block;
+  width: auto;
+  margin-bottom: 20rpx;
+}
+
+.history-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx 24rpx;
+}
+
+.history-option {
+  display: flex;
+  align-items: center;
+  min-width: 180rpx;
+  color: #39445a;
+  font-size: 27rpx;
+}
+
+.field textarea {
+  display: block;
+  width: 100%;
+  min-height: 96rpx;
+  box-sizing: border-box;
+  padding: 20rpx;
+  border: 2rpx solid #e1e5eb;
+  border-radius: 20rpx;
+  color: #273043;
+  font-size: 28rpx;
+  line-height: 1.5;
+}
+
+.primary-button {
+  margin-top: 40rpx;
+}

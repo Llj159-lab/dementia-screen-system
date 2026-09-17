@@ -1,0 +1,9 @@
+<view class="login-page">
+  <view class="hero"><view class="brain">认知</view><view class="hero-title">认知筛查系统</view><view class="hero-subtitle">阿尔茨海默病临床前期筛查工具</view></view>
+  <view class="login-card card">
+    <view class="input-row"><text class="input-icon user-icon">♙</text><input value="{{username}}" placeholder="请输入测试账号" bindinput="onUsernameInput" /></view>
+    <view class="input-row"><text class="input-icon lock-icon">▣</text><input password value="{{password}}" placeholder="请输入密码" bindinput="onPasswordInput" /></view>
+    <button class="primary-button" loading="{{loading}}" bindtap="login">登录</button>
+    <view class="agreement muted">开发阶段使用任务三演示账号，不用于生产环境</view>
+  </view>
+</view>

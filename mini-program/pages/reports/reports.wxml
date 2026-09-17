@@ -1,0 +1,9 @@
+<view class="page safe-bottom">
+  <view class="report-header"><view class="back-button" bindtap="back">‹</view><text class="page-title">以往测评报告</text></view>
+  <view wx:if="{{records.length === 0}}" class="empty card muted">暂无历史测评报告</view>
+  <view wx:for="{{records}}" wx:key="assessmentId" class="report-row card">
+    <view class="report-top"><view class="report-code">{{item.scaleCode}}</view><view class="report-result">{{item.scoreText}}</view></view>
+    <view class="report-date">{{item.createdAt}}</view>
+    <view class="report-actions"><button catchtap="open" data-id="{{item.assessmentId}}">查看</button><button catchtap="download" data-id="{{item.assessmentId}}">下载</button></view>
+  </view>
+</view>

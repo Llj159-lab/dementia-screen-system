@@ -1,0 +1,19 @@
+<view class="page safe-bottom">
+  <view class="form-header">
+    <view class="back-button" bindtap="back">‹</view>
+    <text class="page-title">患者建档</text>
+    <text class="save-label" bindtap="submit">保存</text>
+  </view>
+  <view class="card form-card">
+    <view class="field"><text>姓名</text><input placeholder="请输入患者姓名" data-field="name" bindinput="onInput" /></view>
+    <view class="field"><text>患者编号</text><input placeholder="例如 MINI-001" data-field="patientCode" bindinput="onInput" /></view>
+    <view class="field"><text>性别</text><picker range="{{genderLabels}}" bindchange="onGenderChange"><view class="picker-value">{{genderLabels[genderIndex]}}</view></picker></view>
+    <view class="field"><text>出生日期</text><picker mode="date" bindchange="onDateChange"><view class="picker-value">{{form.birthDate || '请选择出生日期'}}</view></picker></view>
+    <view class="field"><text>文化程度</text><picker range="{{educationLabels}}" bindchange="onEducationChange"><view class="picker-value">{{form.educationLevel || '请选择文化程度'}}</view></picker></view>
+    <view class="field"><text>职业</text><input placeholder="请输入职业" data-field="occupation" bindinput="onInput" /></view>
+    <view class="field"><text>婚姻状况</text><picker range="{{maritalLabels}}" bindchange="onMaritalChange"><view class="picker-value">{{form.maritalStatus || '请选择婚姻状况'}}</view></picker></view>
+    <view class="field field-column"><text>既往病史</text><checkbox-group class="history-options" bindchange="onHistoryChange"><label wx:for="{{historyOptions}}" wx:key="value" class="history-option"><checkbox value="{{item.value}}" />{{item.label}}</label></checkbox-group></view>
+    <view class="field field-column"><text>过敏史</text><textarea placeholder="请描述对什么过敏，如药物、食物等" value="{{form.allergyHistory}}" data-field="allergyHistory" bindinput="onInput" auto-height="{{true}}" maxlength="200"></textarea></view>
+    <button class="primary-button" loading="{{loading}}" bindtap="submit">提交建档</button>
+  </view>
+</view>

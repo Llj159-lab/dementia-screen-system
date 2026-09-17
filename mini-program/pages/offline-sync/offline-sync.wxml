@@ -1,0 +1,24 @@
+<view class="page safe-bottom">
+  <view class="sync-header">
+    <view class="back-button" bindtap="back">‹</view>
+    <text class="page-title">离线同步</text>
+  </view>
+  <view class="hero">
+    <view class="hero-icon">☁</view>
+    <view class="hero-title">{{syncing ? '正在同步...' : hasPending ? '有待同步数据' : '同步完成'}}</view>
+    <view class="muted">最后同步时间：{{lastSyncAt || '暂未同步'}}</view>
+  </view>
+  <view class="stats card">
+    <view><text>待同步患者</text><text class="value">{{pendingPatients}}</text></view>
+    <view><text>待同步测评</text><text class="value">{{pendingAssessments}}</text></view>
+    <view><text>已同步数据</text><text class="value">{{completedCount}}条</text></view>
+  </view>
+  <view class="card block">
+    <view class="block-title">离线数据管理</view>
+    <view class="row">
+      <button class="danger" bindtap="clearCache">清除离线缓存</button>
+      <button class="ghost" bindtap="exportData">导出离线数据</button>
+    </view>
+  </view>
+  <button class="primary-button" loading="{{syncing}}" bindtap="syncNow">立即同步</button>
+</view>
